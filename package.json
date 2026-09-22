@@ -1,10 +1,12 @@
 {
   "name": "concorsofacile",
-  "version": "0.1.0",
   "private": true,
   "description": "ConcorsoFacile — app di apprendimento con contesto e voce",
   "scripts": {
+    "postinstall": "node scripts/versione.mjs",
+    "predev": "node scripts/versione.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/versione.mjs",
     "build": "next build",
     "build:gh": "NEXT_PUBLIC_BASE_PATH=/concorsofacile next build",
     "start": "next start",
@@ -13,7 +15,8 @@
     "estrai": "node scripts/extract.mjs",
     "estrai:all": "node scripts/extract.mjs --all",
     "estrai:lista": "node scripts/extract.mjs --list",
-    "voce:aggiorna": "node scripts/aggiorna-voce.mjs"
+    "voce:aggiorna": "node scripts/aggiorna-voce.mjs",
+    "versione": "node scripts/versione.mjs"
   },
   "dependencies": {
     "@mintplex-labs/piper-tts-web": "^1.0.5",

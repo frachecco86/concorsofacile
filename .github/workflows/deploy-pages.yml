@@ -31,7 +31,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # `fetch-depth: 0` è necessario: la versione dell'app è il numero di
+      # commit (scripts/versione.mjs). Con il clone shallow predefinito la
+      # storia sarebbe di 1 solo commit e la versione sbagliata.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
         with:

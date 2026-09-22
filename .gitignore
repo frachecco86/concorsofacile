@@ -21,3 +21,6 @@ public/voce/
 !.env.example
 .DS_Store
 *.log
+
+# Versione generata dalla storia git (vedi scripts/versione.mjs)
+lib/versione.generato.ts

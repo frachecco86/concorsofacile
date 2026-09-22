@@ -8,9 +8,12 @@ import { motion, AnimatePresence } from "motion/react";
 import { useVoce } from "@/lib/voce/hook";
 import { cn } from "@/lib/ui";
 import { Equalizzatore } from "./PulsanteVoce";
+import { FinestraVersioni } from "./FinestraVersioni";
+import { VERSIONE } from "@/lib/versione";
 
 export function Testata() {
   const [pannelloAperto, setPannelloAperto] = useState(false);
+  const [versioniAperte, setVersioniAperte] = useState(false);
   const { stato, serveVoceNeurale, motore } = useVoce();
   const percorso = usePathname();
 
@@ -60,6 +63,17 @@ export function Testata() {
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
+            {/* Versione: apre le note di rilascio */}
+            <button
+              type="button"
+              onClick={() => setVersioniAperte(true)}
+              aria-label={`Versione ${VERSIONE}: vedi le novità`}
+              title="Novità di questa versione"
+              className="tnum inline-flex h-10 shrink-0 items-center rounded-full border border-sage-200 bg-surface px-2.5 text-[11.5px] font-bold text-ink-muted shadow-[var(--shadow-soft)] transition hover:border-brand-300 hover:text-brand-700 active:scale-95 sm:px-3"
+            >
+              v{VERSIONE}
+            </button>
+
             {stato !== "idle" && (
               <span className="hidden items-center gap-2 rounded-full border border-voce-200 bg-voce-50 px-3 py-1.5 text-xs font-medium text-voce-700 sm:flex">
                 <Equalizzatore className="h-3 text-voce-500" />
@@ -116,6 +130,12 @@ export function Testata() {
 
       <AnimatePresence>
         {pannelloAperto && <PannelloVoce onChiudi={() => setPannelloAperto(false)} />}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {versioniAperte && (
+          <FinestraVersioni onChiudi={() => setVersioniAperte(false)} />
+        )}
       </AnimatePresence>
     </>
   );

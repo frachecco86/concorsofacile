@@ -25,7 +25,8 @@ pnpm dev             # http://localhost:3000
 ```
 ├── scripts/
 │   ├── extract.mjs         # doc-definition pdfMake → JSON di quiz
-│   └── aggiorna-voce.mjs   # allinea i WASM di Piper/ONNX alla versione installata
+│   ├── aggiorna-voce.mjs   # allinea i WASM di Piper/ONNX alla versione installata
+│   └── versione.mjs        # genera lib/versione.generato.ts dalla storia git
 ├── public/
 │   ├── data/               # quiz estratti (rigenerabili)
 │   └── voce/               # WASM della voce neurale (rigenerabili)
@@ -142,6 +143,36 @@ Con tutte le 339 materie conviene non versionare `public/data/`:
 
 ---
 
+## Versione e note di rilascio
+
+La versione dell'app compare in topbar e, se toccata, apre la finestra **Novità**
+con le modifiche di ogni rilascio.
+
+La regola è **+0.1 a ogni commit** (schema minor): con N commit la versione è
+`0.N.0`, quindi ogni commit aggiunge esattamente 0.1.
+
+La versione **non è scritta a mano**. È una funzione della storia git, generata
+in `lib/versione.generato.ts` da `scripts/versione.mjs`, che gira su `predev`,
+`prebuild` e `postinstall`. Titolo e voci di ogni rilascio sono la prima riga e
+le righe `- ...` del messaggio di commit.
+
+```bash
+pnpm versione            # rigenera a mano
+pnpm versione --stampa   # vede il risultato senza scrivere
+```
+
+> **Perché non un hook git.** Sarebbe la soluzione ovvia, ma git **non permette
+di mettere in stage dall'hook `commit-msg`** (l'indice è già stato fotografato)
+e `pre-commit` non vede ancora il messaggio. Un hook non può fare entrambe le
+cose, quindi il bump finirebbe nel commit successivo. Generare dalla storia
+toglie il problema: non esiste uno stato da tenere allineato.
+
+> **Nota per la CI.** Il conteggio dipende dalla profondità del clone: il
+workflow usa `fetch-depth: 0`, altrimenti la versione sarebbe `0.1.0` a ogni
+deploy.
+
+---
+
 ## Comandi
 
 | Comando | Cosa fa |
@@ -152,3 +183,5 @@ Con tutte le 339 materie conviene non versionare `public/data/`:
 | `pnpm anteprima` | Serve `out/` per verificare prima del deploy |
 | `pnpm estrai` / `estrai:all` | Estrazione quiz |
 | `pnpm voce:aggiorna` | Allinea i WASM della voce |
+| `pnpm versione` | Rigenera versione e changelog dalla storia git |
+| `pnpm versione --stampa` | Come sopra, ma stampa senza scrivere file |
