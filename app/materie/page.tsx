@@ -28,8 +28,8 @@ export default async function PaginaMaterie() {
       </header>
 
       {materie.length === 0 ? (
-        <div className="rounded-2xl border-2 border-dashed border-sand-300 bg-sand-50 p-10 text-center">
-          <BookOpen size={32} className="mx-auto text-sand-400" />
+        <div className="rounded-2xl border-2 border-dashed border-sage-300 bg-sage-50 p-10 text-center">
+          <BookOpen size={32} className="mx-auto text-sage-400" />
           <p className="mt-3 font-medium text-ink-soft">
             Esegui <code className="rounded bg-surface px-1.5 py-0.5">npm run estrai</code>{" "}
             per caricare le materie.
@@ -41,7 +41,7 @@ export default async function PaginaMaterie() {
             <li key={m.id}>
               <Link
                 href={`/studia/${m.id}/`}
-                className="group flex h-full items-center gap-4 rounded-2xl border border-sand-200 bg-surface px-5 py-4 shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-[var(--shadow-lift)]"
+                className="group flex h-full items-center gap-4 rounded-2xl border border-sage-200 bg-surface px-5 py-4 shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-[var(--shadow-lift)]"
               >
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-100 font-display text-sm font-bold text-brand-700">
                   {m.indice}
@@ -54,7 +54,7 @@ export default async function PaginaMaterie() {
                 </span>
                 <ArrowRight
                   size={18}
-                  className="shrink-0 text-sand-400 transition group-hover:translate-x-0.5 group-hover:text-brand-500"
+                  className="shrink-0 text-sage-400 transition group-hover:translate-x-0.5 group-hover:text-brand-500"
                 />
               </Link>
             </li>

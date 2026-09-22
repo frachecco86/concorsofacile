@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import { FornitoreVoce } from "@/lib/voce/hook";
-import { leggiIndice } from "@/lib/dati/server";
 import { Testata } from "@/components/Testata";
 import "./globals.css";
 
@@ -38,18 +37,17 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#FDF9F3",
+  themeColor: "#F7FAF8",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const indice = await leggiIndice();
   return (
     <html lang="it" className={`${fraunces.variable} ${jakarta.variable}`}>
       <body className="min-h-dvh antialiased">
@@ -65,7 +63,7 @@ export default async function RootLayout({
           }
         `}</style>
         <FornitoreVoce>
-          <Testata quizTotali={indice.quizTotali} />
+          <Testata />
           {children}
         </FornitoreVoce>
       </body>

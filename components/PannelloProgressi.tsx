@@ -34,7 +34,7 @@ export function PannelloProgressi({ materie }: { materie: MateriaIndice[] }) {
 
   if (riepilogo.voci.length === 0) {
     return (
-      <div className="rounded-[28px] border-2 border-dashed border-sand-300 bg-sand-50 p-12 text-center">
+      <div className="rounded-[28px] border-2 border-dashed border-sage-300 bg-sage-50 p-12 text-center">
         <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-100 text-brand-500">
           <TrendingUp size={26} />
         </div>
@@ -85,7 +85,7 @@ export function PannelloProgressi({ materie }: { materie: MateriaIndice[] }) {
                 <motion.div
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="rounded-2xl border border-sand-200 bg-surface p-5 shadow-[var(--shadow-soft)]"
+                  className="rounded-2xl border border-sage-200 bg-surface p-5 shadow-[var(--shadow-soft)]"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -109,7 +109,7 @@ export function PannelloProgressi({ materie }: { materie: MateriaIndice[] }) {
                     </Link>
                   </div>
 
-                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-sand-200">
+                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-sage-200">
                     <div
                       className="h-full rounded-full bg-gradient-to-r from-brand-400 to-brand-500 transition-all duration-700"
                       style={{ width: `${Math.min(100, perc)}%` }}
@@ -134,7 +134,7 @@ export function PannelloProgressi({ materie }: { materie: MateriaIndice[] }) {
       </section>
 
       {/* Azzera */}
-      <section className="rounded-2xl border border-sand-200 bg-surface p-5">
+      <section className="rounded-2xl border border-sage-200 bg-surface p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="font-semibold">Riparti da zero</h3>
@@ -158,7 +158,7 @@ export function PannelloProgressi({ materie }: { materie: MateriaIndice[] }) {
               <button
                 type="button"
                 onClick={() => setConfermaAzzera(false)}
-                className="rounded-full px-4 py-2.5 text-sm font-semibold text-ink-muted transition hover:bg-sand-100"
+                className="rounded-full px-4 py-2.5 text-sm font-semibold text-ink-muted transition hover:bg-sage-100"
               >
                 Annulla
               </button>
@@ -167,7 +167,7 @@ export function PannelloProgressi({ materie }: { materie: MateriaIndice[] }) {
             <button
               type="button"
               onClick={() => setConfermaAzzera(true)}
-              className="inline-flex items-center gap-2 rounded-full border border-sand-200 px-5 py-2.5 text-sm font-semibold text-ink-soft transition hover:border-rose-500/40 hover:text-rose-500"
+              className="inline-flex items-center gap-2 rounded-full border border-sage-200 px-5 py-2.5 text-sm font-semibold text-ink-soft transition hover:border-rose-500/40 hover:text-rose-500"
             >
               <RotateCcw size={15} />
               Azzera
@@ -189,7 +189,7 @@ function Stat({
   colore?: "ink" | "leaf" | "sun" | "brand";
 }) {
   const sfondo = {
-    ink: "bg-sand-50 border-sand-200",
+    ink: "bg-sage-50 border-sage-200",
     leaf: "bg-leaf-100 border-leaf-500/20",
     sun: "bg-sun-100 border-sun-500/20",
     brand: "bg-brand-50 border-brand-200",

@@ -6,23 +6,23 @@ import { AlertTriangle, Check, Download, Loader2, Settings2, X } from "lucide-re
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useVoce } from "@/lib/voce/hook";
-import { cn, num } from "@/lib/ui";
+import { cn } from "@/lib/ui";
 import { Equalizzatore } from "./PulsanteVoce";
 
-export function Testata({ quizTotali }: { quizTotali: number }) {
+export function Testata() {
   const [pannelloAperto, setPannelloAperto] = useState(false);
   const { stato, serveVoceNeurale, motore } = useVoce();
   const percorso = usePathname();
 
   const voci = [
-    { href: "/", etichetta: "Studia" },
-    { href: "/materie/", etichetta: "Materie" },
+    { href: "/", etichetta: "Concorsi" },
+    { href: "/materie/", etichetta: "Quiz" },
     { href: "/progressi/", etichetta: "Progressi" },
   ];
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-sand-200/80 bg-cream/85 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-sage-200/80 bg-cream/85 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-5xl items-center gap-3 px-4 sm:px-6">
           <Link href="/" className="group flex items-center gap-2.5">
             <span className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500 text-white shadow-[var(--shadow-brand)] transition group-hover:scale-105">
@@ -33,7 +33,7 @@ export function Testata({ quizTotali }: { quizTotali: number }) {
                 ConcorsoFacile
               </span>
               <span className="hidden text-[11px] font-medium text-ink-muted sm:block">
-                {num(quizTotali)} quiz da ascoltare
+                Studia ascoltando
               </span>
             </span>
           </Link>
@@ -50,7 +50,7 @@ export function Testata({ quizTotali }: { quizTotali: number }) {
                     "rounded-full px-3.5 py-1.5 text-sm font-medium transition",
                     attivo
                       ? "bg-brand-100 text-brand-700"
-                      : "text-ink-soft hover:bg-sand-100 hover:text-ink"
+                      : "text-ink-soft hover:bg-sage-100 hover:text-ink"
                   )}
                 >
                   {v.etichetta}
@@ -74,7 +74,7 @@ export function Testata({ quizTotali }: { quizTotali: number }) {
                 "inline-flex h-10 items-center gap-2 rounded-full border px-3.5 text-sm font-medium shadow-[var(--shadow-soft)] transition active:scale-95",
                 serveVoceNeurale && motore === "dispositivo"
                   ? "border-sun-500/40 bg-sun-100 text-sun-500"
-                  : "border-sand-200 bg-surface text-ink-soft hover:border-voce-300 hover:text-voce-700"
+                  : "border-sage-200 bg-surface text-ink-soft hover:border-voce-300 hover:text-voce-700"
               )}
             >
               {serveVoceNeurale && motore === "dispositivo" ? (
@@ -87,7 +87,7 @@ export function Testata({ quizTotali }: { quizTotali: number }) {
           </div>
         </div>
 
-        <nav className="flex items-center gap-1 border-t border-sand-200/70 px-3 py-2 sm:hidden">
+        <nav className="flex items-center gap-1 border-t border-sage-200/70 px-3 py-2 sm:hidden">
           {voci.map((v) => {
             const attivo =
               v.href === "/" ? percorso === "/" : percorso.startsWith(v.href);
@@ -99,7 +99,7 @@ export function Testata({ quizTotali }: { quizTotali: number }) {
                   "flex-1 rounded-full px-3 py-1.5 text-center text-sm font-medium transition",
                   attivo
                     ? "bg-brand-100 text-brand-700"
-                    : "text-ink-soft hover:bg-sand-100"
+                    : "text-ink-soft hover:bg-sage-100"
                 )}
               >
                 {v.etichetta}
@@ -149,7 +149,7 @@ function PannelloVoce({ onChiudi }: { onChiudi: () => void }) {
         exit={{ y: 40, opacity: 0, scale: 0.98 }}
         transition={{ type: "spring", stiffness: 380, damping: 32 }}
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-[28px] border border-sand-200 bg-surface p-6 shadow-[var(--shadow-lift)] sm:rounded-[var(--radius-card)]"
+        className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-[28px] border border-sage-200 bg-surface p-6 shadow-[var(--shadow-lift)] sm:rounded-[var(--radius-card)]"
       >
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
@@ -164,7 +164,7 @@ function PannelloVoce({ onChiudi }: { onChiudi: () => void }) {
             type="button"
             onClick={onChiudi}
             aria-label="Chiudi"
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-muted transition hover:bg-sand-100 hover:text-ink"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-muted transition hover:bg-sage-100 hover:text-ink"
           >
             <X size={18} />
           </button>
@@ -201,13 +201,13 @@ function PannelloVoce({ onChiudi }: { onChiudi: () => void }) {
                       "flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition",
                       attivo
                         ? "border-voce-400 bg-voce-50"
-                        : "border-sand-200 bg-cream hover:border-sand-300"
+                        : "border-sage-200 bg-cream hover:border-sage-300"
                     )}
                   >
                     <span
                       className={cn(
                         "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition",
-                        attivo ? "border-voce-500 bg-voce-500" : "border-sand-300"
+                        attivo ? "border-voce-500 bg-voce-500" : "border-sage-300"
                       )}
                     >
                       {attivo && <Check size={12} strokeWidth={4} className="text-white" />}
@@ -247,7 +247,7 @@ function PannelloVoce({ onChiudi }: { onChiudi: () => void }) {
                     parla("Ciao, sono la voce che hai scelto. Studiamo insieme!");
                   }
                 }}
-                className="w-full rounded-xl border border-sand-200 bg-cream px-3.5 py-3 text-sm font-medium text-ink transition focus:border-brand-400 focus:bg-surface"
+                className="w-full rounded-xl border border-sage-200 bg-cream px-3.5 py-3 text-sm font-medium text-ink transition focus:border-brand-400 focus:bg-surface"
               >
                 {elenco.map((v) => (
                   <option key={v.id} value={v.id}>
@@ -348,7 +348,7 @@ function StatoModelloBox({
   }
 
   return (
-    <div className="rounded-2xl border border-sand-200 bg-cream p-4">
+    <div className="rounded-2xl border border-sage-200 bg-cream p-4">
       <div className="flex items-start gap-3">
         <Download size={18} className="mt-0.5 shrink-0 text-ink-muted" />
         <div className="min-w-0 flex-1">
@@ -399,7 +399,7 @@ function Cursore({
         <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
           {etichetta}
         </span>
-        <span className="tnum rounded-full bg-sand-100 px-2.5 py-1 text-xs font-semibold text-ink-soft">
+        <span className="tnum rounded-full bg-sage-100 px-2.5 py-1 text-xs font-semibold text-ink-soft">
           {formatta(valore)}
         </span>
       </div>
@@ -411,7 +411,7 @@ function Cursore({
         value={valore}
         disabled={disabilitato}
         onChange={(e) => onCambia(Number(e.target.value))}
-        className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-sand-200 accent-brand-500 disabled:cursor-not-allowed [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:shadow-[var(--shadow-brand)]"
+        className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-sage-200 accent-brand-500 disabled:cursor-not-allowed [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:shadow-[var(--shadow-brand)]"
       />
       {nota && <p className="mt-1.5 text-xs text-ink-muted">{nota}</p>}
     </div>

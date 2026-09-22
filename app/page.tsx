@@ -1,217 +1,206 @@
-import Link from "next/link";
-import { ArrowRight, BookOpen, Headphones, Sparkles, Target } from "lucide-react";
-import { leggiStatistiche } from "@/lib/dati/server";
+import { ArrowRight, CalendarDays, MapPin, Users } from "lucide-react";
+import {
+  CONCORSI,
+  dataIt,
+  giorniAllaScadenza,
+  statisticheConcorsi,
+  type Concorso,
+} from "@/lib/dati/concorsi";
+import { trovaLezione } from "@/lib/dati/lezioni";
 import { num } from "@/lib/ui";
+import { TendinaMaterie } from "@/components/TendinaMaterie";
 
-export default async function Home() {
-  const stat = await leggiStatistiche();
-  const vuoto = stat.materie === 0;
+export default function Home() {
+  const stat = statisticheConcorsi(CONCORSI);
+
+  // Ordinamento: prima i concorsi ancora utili (aperti, scadenza più vicina),
+  // in fondo quelli già conclusi. Un concorso scaduto non sparisce — resta
+  // consultabile — ma non deve rubare l'attenzione.
+  const ordinati = [...CONCORSI].sort((a, b) => {
+    const ga = giorniAllaScadenza(a.scadenza);
+    const gb = giorniAllaScadenza(b.scadenza);
+    const scadutoA = ga !== null && ga < 0;
+    const scadutoB = gb !== null && gb < 0;
+    if (scadutoA !== scadutoB) return scadutoA ? 1 : -1;
+    return (ga ?? 9999) - (gb ?? 9999);
+  });
+
+  const aperti = ordinati.filter((c) => {
+    const g = giorniAllaScadenza(c.scadenza);
+    return g === null || g >= 0;
+  }).length;
 
   return (
-    <main className="mx-auto max-w-5xl px-4 pb-24 pt-10 sm:px-6 sm:pt-16">
-      {vuoto ? <AvvisoVuoto /> : null}
-
-      {/* Hero */}
-      <section className="paper-grain relative overflow-hidden rounded-[32px] border border-sand-200 bg-surface px-6 py-12 shadow-[var(--shadow-lift)] sm:px-12 sm:py-16">
-        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brand-100/60 blur-2xl" />
-        <div className="pointer-events-none absolute -bottom-32 -left-16 h-72 w-72 rounded-full bg-voce-100/60 blur-2xl" />
-
-        <div className="relative max-w-2xl">
-          <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-brand-700">
-            <Sparkles size={13} strokeWidth={2.6} />
-            Studio con la voce
+    <main className="mx-auto max-w-5xl px-4 pb-24 pt-8 sm:px-6 sm:pt-12">
+      {/* Intestazione */}
+      <header className="mb-8">
+        <h1 className="font-display text-3xl font-semibold leading-tight sm:text-4xl">
+          Concorsi aperti in Italia
+        </h1>
+        <p className="mt-2 max-w-2xl text-ink-soft">
+          <b className="font-semibold text-ink">{aperti}</b> concorsi ancora
+          aperti, {num(stat.postiTotali)} posti dichiarati in{" "}
+          {num(stat.materieUniche)} materie. Apri un concorso per vedere le
+          materie da preparare e studiarle con la voce.
+        </p>
+        <p className="mt-3 flex items-start gap-2 rounded-xl border border-sun-500/25 bg-sun-100/60 px-3.5 py-2.5 text-xs leading-relaxed text-ink-soft">
+          <span className="font-semibold text-sun-600">Nota.</span>
+          <span>
+            Dati raccolti da fonti pubbliche il 22 settembre 2026 a scopo
+            informativo. Non sono un atto ufficiale: verifica sempre il bando
+            sull&apos;ente titolare prima di presentare domanda.
           </span>
+        </p>
+      </header>
 
-          <h1 className="mt-6 font-display text-4xl font-semibold leading-[1.08] tracking-tight sm:text-6xl">
-            Studia{" "}
-            <span className="relative inline-block">
-              <span className="relative z-10">ascoltando</span>
-              <span className="absolute inset-x-0 bottom-1 z-0 h-3 rounded-sm bg-brand-200/70 sm:h-4" />
-            </span>
-            , non solo leggendo.
-          </h1>
-
-          <p className="mt-5 max-w-xl text-lg leading-relaxed text-ink-soft">
-            ConcorsoFacile legge le domande e le risposte ad alta voce e ti lascia
-            decidere cosa sai e cosa rivedere. Il ripasso si costruisce da solo,
-            in base a quello che hai sbagliato.
-          </p>
-
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Link
-              href="/materie/"
-              className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-6 py-3.5 text-sm font-bold text-white shadow-[var(--shadow-brand)] transition hover:bg-brand-600 active:scale-[0.98]"
-            >
-              Inizia a studiare
-              <ArrowRight size={17} strokeWidth={2.6} />
-            </Link>
-            <Link
-              href="/progressi/"
-              className="inline-flex items-center gap-2 rounded-full border border-sand-200 bg-cream px-6 py-3.5 text-sm font-bold text-ink-soft transition hover:border-brand-300 hover:text-brand-600"
-            >
-              I miei progressi
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Numeri */}
-      <section className="mt-10 grid gap-4 sm:grid-cols-3">
-        <Numero
-          icona={<BookOpen size={18} />}
-          valore={num(stat.materie)}
-          etichetta="materie pronte"
-          colore="brand"
-        />
-        <Numero
-          icona={<Target size={18} />}
-          valore={num(stat.quiz)}
-          etichetta="quiz disponibili"
-          colore="voce"
-        />
-        <Numero
-          icona={<Headphones size={18} />}
-          valore="∞"
-          etichetta="sessioni, quante vuoi"
-          colore="lilac"
-        />
-      </section>
-
-      {/* Come funziona */}
-      <section className="mt-14">
-        <h2 className="font-display text-2xl font-semibold sm:text-3xl">
-          Come funziona
-        </h2>
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          <Passo
-            n={1}
-            titolo="Ascolta"
-            testo="La voce legge la domanda e la risposta. Puoi cambiare voce, velocità e tono in qualsiasi momento."
-          />
-          <Passo
-            n={2}
-            titolo="Decidi"
-            testo="La sapevo, oppure da rivedere. Due pulsanti, nessuna distrazione, un tasto della tastiera se preferisci."
-          />
-          <Passo
-            n={3}
-            titolo="Ripassa"
-            testo="ConcorsoFacile tiene il conto e ti ripropone prima le domande che ti sono sfuggite."
-          />
-        </div>
-      </section>
-
-      {/* Materie più ricche */}
-      {stat.piuGrandi.length > 0 && (
-        <section className="mt-14">
-          <div className="flex items-end justify-between gap-4">
-            <h2 className="font-display text-2xl font-semibold sm:text-3xl">
-              Materie più ricche
-            </h2>
-            <Link
-              href="/materie/"
-              className="text-sm font-semibold text-brand-600 transition hover:text-brand-700"
-            >
-              Vedi tutte →
-            </Link>
-          </div>
-          <ul className="mt-6 grid gap-3 sm:grid-cols-2">
-            {stat.piuGrandi.map((m) => (
-              <li key={m.id}>
-                <Link
-                  href={`/studia/${m.id}/`}
-                  className="group flex items-center gap-4 rounded-2xl border border-sand-200 bg-surface px-5 py-4 shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-[var(--shadow-lift)]"
-                >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 font-display text-sm font-bold text-brand-700">
-                    {m.indice}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-semibold">{m.nome}</span>
-                    <span className="tnum block text-sm text-ink-muted">
-                      {num(m.quizCount)} quiz
-                    </span>
-                  </span>
-                  <ArrowRight
-                    size={18}
-                    className="shrink-0 text-sand-400 transition group-hover:translate-x-0.5 group-hover:text-brand-500"
-                  />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      {/* Elenco concorsi */}
+      <ul className="space-y-3">
+        {ordinati.map((c) => (
+          <li key={c.id}>
+            <SchedaConcorso concorso={c} />
+          </li>
+        ))}
+      </ul>
     </main>
   );
 }
 
-function Numero({
-  icona,
-  valore,
-  etichetta,
-  colore,
-}: {
-  icona: React.ReactNode;
-  valore: string;
-  etichetta: string;
-  colore: "brand" | "voce" | "lilac";
-}) {
-  const stili = {
-    brand: "bg-brand-100 text-brand-600",
-    voce: "bg-voce-100 text-voce-600",
-    lilac: "bg-lilac-100 text-lilac-500",
-  }[colore];
+function SchedaConcorso({ concorso: c }: { concorso: Concorso }) {
+  const giorni = giorniAllaScadenza(c.scadenza);
+  const scaduto = giorni !== null && giorni < 0;
+  const imminente = giorni !== null && giorni >= 0 && giorni <= 7;
+
+  const conLezione = c.materie.filter((m) => trovaLezione(m.nome, c.id)).length;
 
   return (
-    <div className="rounded-2xl border border-sand-200 bg-surface p-5 shadow-[var(--shadow-soft)]">
-      <span
-        className={`mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl ${stili}`}
+    <details
+      className="group rounded-[var(--radius-card)] border border-sage-200
+                 bg-surface shadow-[var(--shadow-soft)] transition
+                 open:border-brand-300 open:shadow-[var(--shadow-lift)]"
+    >
+      <summary
+        className="flex cursor-pointer list-none items-start gap-4 p-5
+                   transition hover:bg-sage-50/60 [&::-webkit-details-marker]:hidden"
       >
-        {icona}
-      </span>
-      <div className="tnum font-display text-3xl font-semibold leading-none">
-        {valore}
+        {/* Indicatore scadenza */}
+        <span
+          aria-hidden="true"
+          className={`mt-1 h-10 w-1.5 shrink-0 rounded-full ${
+            scaduto
+              ? "bg-sage-300"
+              : imminente
+                ? "bg-sun-500"
+                : "bg-brand-500"
+          }`}
+        />
+
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-2">
+            <Tag>{c.area}</Tag>
+            <Tag tenue>{requisitoLabel(c.requisito)}</Tag>
+            {conLezione > 0 && (
+              <span className="rounded-full bg-brand-100 px-2.5 py-0.5 text-[11px] font-bold text-brand-700">
+                {conLezione === 1 ? "1 materia pronta" : `${conLezione} materie pronte`}
+              </span>
+            )}
+          </span>
+
+          <span className="mt-2 block font-display text-lg font-semibold leading-snug">
+            {c.titolo}
+          </span>
+          <span className="mt-0.5 block text-sm text-ink-muted">{c.ente}</span>
+
+          <span className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-ink-muted">
+            {typeof c.posti === "number" && (
+              <span className="inline-flex items-center gap-1.5">
+                <Users size={13} />
+                <b className="tnum font-semibold text-ink-soft">{num(c.posti)}</b> posti
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarDays size={13} />
+              {c.scadenza ? (
+                <>
+                  scade il <b className="font-semibold text-ink-soft">{dataIt(c.scadenza)}</b>
+                  {!scaduto && (
+                    <span className={imminente ? "font-semibold text-sun-600" : ""}>
+                      ({giorni === 0 ? "oggi" : `${giorni} gg`})
+                    </span>
+                  )}
+                  {scaduto && <span className="text-sage-400">(concluso)</span>}
+                </>
+              ) : (
+                "scadenza da verificare"
+              )}
+            </span>
+            {c.regioni.length > 0 && (
+              <span className="inline-flex items-center gap-1.5">
+                <MapPin size={13} />
+                {c.regioni.length > 3
+                  ? `${c.regioni.length} regioni`
+                  : c.regioni.join(", ")}
+              </span>
+            )}
+          </span>
+        </span>
+
+        {/* Freccia: ruota all'apertura (pura decorazione, indicata come tale) */}
+        <span
+          aria-hidden="true"
+          className="mt-1 shrink-0 text-sage-400 transition-transform
+                     duration-200 group-open:rotate-90"
+        >
+          <ArrowRight size={18} />
+        </span>
+      </summary>
+
+      {/* Corpo: materie */}
+      <div className="border-t border-sage-200 px-5 pb-5 pt-4">
+        <TendinaMaterie concorso={c} />
+
+        {c.fonteUrl && (
+          <p className="mt-4 text-xs text-ink-muted">
+            Fonte e dettagli:{" "}
+            <a
+              href={c.fonteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-brand-600 underline decoration-brand-200 underline-offset-2 transition hover:text-brand-700"
+            >
+              scheda del bando
+            </a>
+            . Verificato il {dataIt(c.verificatoIl)}.
+          </p>
+        )}
       </div>
-      <div className="mt-1.5 text-sm font-medium text-ink-muted">{etichetta}</div>
-    </div>
+    </details>
   );
 }
 
-function Passo({
-  n,
-  titolo,
-  testo,
+function Tag({
+  children,
+  tenue,
 }: {
-  n: number;
-  titolo: string;
-  testo: string;
+  children: React.ReactNode;
+  tenue?: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-sand-200 bg-surface p-5 shadow-[var(--shadow-soft)]">
-      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-ink font-display text-sm font-bold text-cream">
-        {n}
-      </span>
-      <h3 className="mt-3 font-display text-lg font-semibold">{titolo}</h3>
-      <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{testo}</p>
-    </div>
+    <span
+      className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+        tenue
+          ? "bg-sage-100 text-ink-muted"
+          : "bg-brand-50 text-brand-700"
+      }`}
+    >
+      {children}
+    </span>
   );
 }
 
-function AvvisoVuoto() {
-  return (
-    <div className="mb-8 rounded-2xl border-2 border-dashed border-brand-300 bg-brand-50 p-6">
-      <h2 className="font-display text-xl font-semibold text-brand-800">
-        Nessun quiz ancora caricato
-      </h2>
-      <p className="mt-2 text-sm text-ink-soft">
-        Esegui l&apos;estrazione dal corpus dei concorsi per popolare l&apos;app:
-      </p>
-      <pre className="mt-3 overflow-x-auto rounded-xl bg-ink px-4 py-3 text-sm text-cream">
-        <code>npm run estrai</code>
-      </pre>
-      <p className="mt-2 text-xs text-ink-muted">
-        Per includere tutte le 339 materie: <code>npm run estrai:all</code>.
-      </p>
-    </div>
-  );
+function requisitoLabel(r: Concorso["requisito"]): string {
+  if (r === "licenza media") return "Licenza media";
+  if (r === "diploma") return "Diploma";
+  if (r === "laurea") return "Laurea";
+  if (r === "laurea magistrale") return "Laurea magistrale";
+  return "Requisiti vari";
 }

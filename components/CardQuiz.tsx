@@ -104,7 +104,7 @@ export function CardQuiz({
     <div className="relative">
       {/* Barra progresso sessione */}
       <div className="mb-5 flex items-center gap-3">
-        <div className="h-2 flex-1 overflow-hidden rounded-full bg-sand-200">
+        <div className="h-2 flex-1 overflow-hidden rounded-full bg-sage-200">
           <motion.div
             className="h-full rounded-full bg-gradient-to-r from-brand-400 to-brand-500"
             initial={false}
@@ -114,11 +114,11 @@ export function CardQuiz({
         </div>
         <span className="tnum shrink-0 text-sm font-semibold text-ink-muted">
           {indice + 1}
-          <span className="text-sand-400"> / {totale}</span>
+          <span className="text-sage-400"> / {totale}</span>
         </span>
       </div>
 
-      <div className="paper-grain relative overflow-hidden rounded-[28px] border border-sand-200 bg-surface shadow-[var(--shadow-lift)]">
+      <div className="paper-grain relative overflow-hidden rounded-[28px] border border-sage-200 bg-surface shadow-[var(--shadow-lift)]">
         {/* Banda laterale arancione: identità della card */}
         <div className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-brand-400 to-brand-600" />
 
@@ -136,7 +136,7 @@ export function CardQuiz({
                   Domanda {quiz.numero}
                 </span>
                 {quiz.gruppo > 0 && (
-                  <span className="rounded-full bg-sand-100 px-3 py-1 text-[11px] font-semibold text-ink-muted">
+                  <span className="rounded-full bg-sage-100 px-3 py-1 text-[11px] font-semibold text-ink-muted">
                     Argomento {quiz.gruppo}
                   </span>
                 )}
@@ -160,7 +160,7 @@ export function CardQuiz({
                   type="button"
                   onClick={() => parla(testoLetto, chiave)}
                   aria-label="Rileggi dall'inizio"
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-sand-200 text-ink-muted transition hover:border-brand-300 hover:text-brand-600 active:scale-95"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-sage-200 text-ink-muted transition hover:border-brand-300 hover:text-brand-600 active:scale-95"
                 >
                   <RotateCcw size={17} />
                 </button>
@@ -207,7 +207,7 @@ export function CardQuiz({
         </div>
 
         {/* Azioni */}
-        <div className="relative border-t border-sand-200 bg-sand-50/60 px-6 py-5 pl-8 sm:px-9 sm:pl-11">
+        <div className="relative border-t border-sage-200 bg-sage-50/60 px-6 py-5 pl-8 sm:px-9 sm:pl-11">
           <AnimatePresence mode="wait">
             {fase === "domanda" ? (
               <motion.div
@@ -232,7 +232,7 @@ export function CardQuiz({
                   <button
                     type="button"
                     onClick={onIndietro}
-                    className="ml-auto rounded-full px-4 py-2 text-sm font-medium text-ink-muted transition hover:bg-sand-100 hover:text-ink"
+                    className="ml-auto rounded-full px-4 py-2 text-sm font-medium text-ink-muted transition hover:bg-sage-100 hover:text-ink"
                   >
                     Indietro
                   </button>

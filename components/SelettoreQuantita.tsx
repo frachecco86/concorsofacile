@@ -28,7 +28,7 @@ export function SelettoreQuantita({
   return (
     <div
       className={cn(
-        "flex items-center gap-1 rounded-full border border-sand-200 bg-surface p-1 shadow-[var(--shadow-soft)]",
+        "flex items-center gap-1 rounded-full border border-sage-200 bg-surface p-1 shadow-[var(--shadow-soft)]",
         disabilitato && "pointer-events-none opacity-50"
       )}
       role="group"
@@ -44,7 +44,7 @@ export function SelettoreQuantita({
             "tnum rounded-full px-3.5 py-1.5 text-sm font-semibold transition",
             o === quanti
               ? "bg-brand-500 text-white shadow-[var(--shadow-brand)]"
-              : "text-ink-muted hover:bg-sand-100 hover:text-ink"
+              : "text-ink-muted hover:bg-sage-100 hover:text-ink"
           )}
         >
           {o}

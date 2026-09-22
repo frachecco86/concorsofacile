@@ -44,7 +44,7 @@ export function Card({
   return (
     <Tag
       className={cn(
-        "rounded-[var(--radius-card)] border border-sand-200 bg-surface shadow-[var(--shadow-soft)]",
+        "rounded-[var(--radius-card)] border border-sage-200 bg-surface shadow-[var(--shadow-soft)]",
         className
       )}
     >

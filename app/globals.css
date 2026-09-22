@@ -1,45 +1,45 @@
 @import "tailwindcss";
 
 /* ==========================================================================
-   NARRA · Design tokens
-   "Il Quaderno Vivo" — carta calda, arancione guida, teal della voce.
+   CONCORSOFACILE · Design tokens
+   "Studio verde" — calmo, concentrato, adatto alle sessioni lunghe.
    ========================================================================== */
 
 @theme {
-  /* --- Carta e superfici (calde, mai bianco freddo) --- */
-  --color-cream: #fdf9f3;
+  /* --- Sfondo e superfici (bianco-verde freddo) --- */
+  --color-cream: #f7faf8;
   --color-surface: #ffffff;
-  --color-sand-50: #faf5ee;
-  --color-sand-100: #f4ece1;
-  --color-sand-200: #e9ddcd;
-  --color-sand-300: #d9c8b3;
-  --color-sand-400: #b9a48c;
+  --color-sage-50: #f4f8f6;
+  --color-sage-100: #e8f0ec;
+  --color-sage-200: #d3e0da;
+  --color-sage-300: #b5c9c0;
+  --color-sage-400: #93aba1;
 
-  /* --- Inchiostro (near-black caldo) --- */
-  --color-ink: #1c1a17;
-  --color-ink-soft: #4a443c;
-  --color-ink-muted: #7d7469;
+  /* --- Inchiostro (verde-nero) --- */
+  --color-ink: #14211d;
+  --color-ink-soft: #3a4a44;
+  --color-ink-muted: #6b7c75;
 
-  /* --- Arancione guida: azioni, progresso, energia --- */
-  --color-brand-50: #fff5ef;
-  --color-brand-100: #ffe9dc;
-  --color-brand-200: #ffd0b3;
-  --color-brand-300: #ffae7d;
-  --color-brand-400: #ff8a47;
-  --color-brand-500: #f2570b;
-  --color-brand-600: #d9430a;
-  --color-brand-700: #b3340c;
-  --color-brand-800: #8f2b0e;
+  /* --- Verde bosco: azioni, progresso, energia --- */
+  --color-brand-50: #edfaf6;
+  --color-brand-100: #d3f2e8;
+  --color-brand-200: #a8e5d2;
+  --color-brand-300: #74d0b8;
+  --color-brand-400: #3fb49a;
+  --color-brand-500: #0e7c66;
+  --color-brand-600: #0b6353;
+  --color-brand-700: #094e42;
+  --color-brand-800: #073c33;
 
-  /* --- Teal della voce: tutto ciò che parla --- */
-  --color-voce-50: #eefbfa;
-  --color-voce-100: #dcf6f4;
-  --color-voce-200: #b6ebe7;
-  --color-voce-300: #82dad4;
-  --color-voce-400: #45c2bc;
-  --color-voce-500: #0e8c86;
-  --color-voce-600: #0b7570;
-  --color-voce-700: #0a5d59;
+  /* --- Verde acqua: tutto ciò che parla --- */
+  --color-voce-50: #ecfaf8;
+  --color-voce-100: #d2f4ef;
+  --color-voce-200: #a6e8df;
+  --color-voce-300: #72d6c9;
+  --color-voce-400: #3bbdae;
+  --color-voce-500: #12796b;
+  --color-voce-600: #0e6055;
+  --color-voce-700: #0b4a42;
 
   /* --- Accenti semantici --- */
   --color-lilac-100: #ece9fb;
@@ -50,8 +50,10 @@
   --color-leaf-600: #268038;
   --color-rose-100: #ffe5e5;
   --color-rose-500: #e03131;
-  --color-sun-100: #fff4d6;
-  --color-sun-500: #f08c00;
+  /* Ambra: "da rivedere", attenzione */
+  --color-sun-100: #fdf3d9;
+  --color-sun-500: #e4a11b;
+  --color-sun-600: #c4880f;
 
   /* --- Tipografia --- */
   --font-display: "Fraunces", Georgia, "Times New Roman", serif;
@@ -62,10 +64,10 @@
   --radius-pill: 9999px;
 
   /* --- Ombre calde --- */
-  --shadow-soft: 0 1px 2px rgba(92, 71, 51, 0.05), 0 4px 12px rgba(92, 71, 51, 0.06);
-  --shadow-lift: 0 2px 4px rgba(92, 71, 51, 0.06), 0 12px 28px rgba(92, 71, 51, 0.1);
-  --shadow-brand: 0 8px 24px rgba(242, 87, 11, 0.24);
-  --shadow-voce: 0 8px 24px rgba(14, 140, 134, 0.24);
+  --shadow-soft: 0 1px 2px rgba(20, 60, 50, 0.05), 0 4px 12px rgba(20, 60, 50, 0.06);
+  --shadow-lift: 0 2px 4px rgba(20, 60, 50, 0.06), 0 12px 28px rgba(20, 60, 50, 0.1);
+  --shadow-brand: 0 8px 24px rgba(14, 124, 102, 0.24);
+  --shadow-voce: 0 8px 24px rgba(18, 121, 107, 0.24);
 }
 
 /* ==========================================================================
@@ -147,10 +149,10 @@ h3 {
 @keyframes narra-voce-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(14, 140, 134, 0.35);
+    box-shadow: 0 0 0 0 rgba(18, 121, 107, 0.35);
   }
   50% {
-    box-shadow: 0 0 0 12px rgba(14, 140, 134, 0);
+    box-shadow: 0 0 0 12px rgba(18, 121, 107, 0);
   }
 }
 

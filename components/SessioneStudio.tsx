@@ -210,15 +210,15 @@ function TastiUtili() {
       <span>
         <b className="font-semibold text-ink-soft">Spazio</b> rivela
       </span>
-      <span className="text-sand-300">·</span>
+      <span className="text-sage-300">·</span>
       <span>
         <b className="font-semibold text-ink-soft">1</b> la sapevo
       </span>
-      <span className="text-sand-300">·</span>
+      <span className="text-sage-300">·</span>
       <span>
         <b className="font-semibold text-ink-soft">2</b> da rivedere
       </span>
-      <span className="text-sand-300">·</span>
+      <span className="text-sage-300">·</span>
       <span>
         <b className="font-semibold text-ink-soft">R</b> rileggi
       </span>
@@ -264,7 +264,7 @@ function Ripristino({
         <button
           type="button"
           onClick={onRicomincia}
-          className="inline-flex items-center gap-2 rounded-full border border-sand-200 bg-surface px-6 py-3 text-sm font-semibold text-ink-soft transition hover:border-brand-300 hover:text-brand-600"
+          className="inline-flex items-center gap-2 rounded-full border border-sage-200 bg-surface px-6 py-3 text-sm font-semibold text-ink-soft transition hover:border-brand-300 hover:text-brand-600"
         >
           <RotateCcw size={16} />
           Ricomincia
@@ -310,7 +310,7 @@ function Esito({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      className="paper-grain relative overflow-hidden rounded-[28px] border border-sand-200 bg-surface shadow-[var(--shadow-lift)]"
+      className="paper-grain relative overflow-hidden rounded-[28px] border border-sage-200 bg-surface shadow-[var(--shadow-lift)]"
     >
       <div className="relative p-8 text-center sm:p-10">
         <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-100 text-brand-600">
@@ -319,7 +319,7 @@ function Esito({
 
         <h2 className="font-display text-3xl font-semibold">
           {sapute}
-          <span className="text-sand-400">/{totali}</span>
+          <span className="text-sage-400">/{totali}</span>
         </h2>
         <p className="mt-1 text-sm font-medium uppercase tracking-wider text-ink-muted">
           risposte sapute
@@ -331,7 +331,7 @@ function Esito({
 
         {/* Anello di progresso */}
         <div className="mx-auto mt-7 max-w-xs">
-          <div className="h-3 overflow-hidden rounded-full bg-sand-200">
+          <div className="h-3 overflow-hidden rounded-full bg-sage-200">
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-brand-400 to-brand-500"
               initial={{ width: 0 }}
@@ -388,7 +388,7 @@ function Dato({
     ? accent === "sun"
       ? "bg-sun-100 text-sun-500 border-sun-500/20"
       : "bg-leaf-100 text-leaf-600 border-leaf-500/20"
-    : "bg-sand-50 text-ink border-sand-200";
+    : "bg-sage-50 text-ink border-sage-200";
   return (
     <div className={`rounded-2xl border px-4 py-3 text-left ${colori}`}>
       <div className="text-[11px] font-bold uppercase tracking-wider opacity-70">
