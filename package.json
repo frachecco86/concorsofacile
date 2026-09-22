@@ -1,0 +1,37 @@
+{
+  "name": "concorsofacile",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ConcorsoFacile — app di apprendimento con contesto e voce",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "build:gh": "NEXT_PUBLIC_BASE_PATH=/concorsofacile next build",
+    "start": "next start",
+    "lint": "eslint",
+    "anteprima": "npx --yes serve out -l 4173",
+    "estrai": "node scripts/extract.mjs",
+    "estrai:all": "node scripts/extract.mjs --all",
+    "estrai:lista": "node scripts/extract.mjs --list",
+    "voce:aggiorna": "node scripts/aggiorna-voce.mjs"
+  },
+  "dependencies": {
+    "@mintplex-labs/piper-tts-web": "^1.0.5",
+    "lucide-react": "^1.23.0",
+    "motion": "^12.42.2",
+    "next": "16.2.10",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.10",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

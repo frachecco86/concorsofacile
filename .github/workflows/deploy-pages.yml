@@ -1,0 +1,91 @@
+# Deploy su GitHub Pages.
+#
+# GitHub Pages serve il sito da https://<utente>.github.io/<repo>/, quindi la
+# build deve conoscere la sottocartella: `NEXT_PUBLIC_BASE_PATH`.
+#
+# Il file `public/.nojekyll` è già presente e impedisce a Jekyll di ignorare
+# la cartella `_next/` (dove stanno i bundle): senza, la pagina resta bianca.
+name: Deploy su GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # Permette di rilanciare il deploy a mano dalla scheda Actions.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Una sola pubblicazione alla volta; non annullare un deploy in corso.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  # Nome del repository: se lo rinomini, aggiorna anche questo valore.
+  BASE_PATH: /concorsofacile
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Installa dipendenze
+        run: pnpm install --frozen-lockfile
+
+      # I JSON dei quiz sono versionati (8 materie pilota), quindi questo passo
+      # è una rete di sicurezza: rigenera i dati dal corpus se presente, e se
+      # il corpus non c'è non fa nulla.
+      - name: Estrai i quiz (se il corpus è disponibile)
+        run: |
+          if [ -d ../materie-json ]; then
+            pnpm estrai
+          else
+            echo "Corpus non presente: uso i dati già versionati in public/data/"
+          fi
+
+      # I WASM della voce sono esclusi da git (.gitignore) e vengono ricostruiti
+      # qui a partire dalle versioni dei pacchetti installati.
+      - name: Allinea le risorse della voce
+        run: pnpm voce:aggiorna
+
+      - name: Build (export statico con base path)
+        run: pnpm build
+        env:
+          NEXT_PUBLIC_BASE_PATH: ${{ env.BASE_PATH }}
+
+      # Verifica che la build sia davvero pronta per Pages: un errore qui
+      # evita di pubblicare una pagina bianca.
+      - name: Verifica la build
+        run: |
+          set -e
+          test -f out/index.html || { echo "::error::out/index.html mancante"; exit 1; }
+          test -f out/.nojekyll || { echo "::error::out/.nojekyll mancante (Jekyll romperebbe _next/)"; exit 1; }
+          test -d out/voce/ort || { echo "::error::WASM della voce mancanti"; exit 1; }
+          echo "Build verificata: $(find out -type f | wc -l) file, $(du -sh out | cut -f1)"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,14 @@
+# Netlify · configurazione per export statico
+[build]
+  command = "npm run build"
+  publish = "out"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Le route di Next hanno già la cartella `index.html` grazie a trailingSlash.
+# Questa regola copre le navigazioni dirette a un percorso senza slash finale.
+[[redirects]]
+  from = "/*"
+  to = "/404.html"
+  status = 404

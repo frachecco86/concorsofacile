@@ -1,0 +1,23 @@
+# Dipendenze
+node_modules/
+.pnpm-store/
+
+# Build Next
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Dati estratti (rigenerabili con `npm run estrai`)
+# I JSON dei quiz possono essere grandi: se il repo diventa pesante,
+# togli il commento alle due righe sotto e distribuiscili a parte.
+# public/data/
+
+# Risorse voce scaricate (rigenerabili con `npm run voce:aggiorna`)
+public/voce/
+
+# Ambiente e OS
+.env*
+!.env.example
+.DS_Store
+*.log

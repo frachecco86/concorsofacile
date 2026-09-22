@@ -1,0 +1,216 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   NARRA · Design tokens
+   "Il Quaderno Vivo" — carta calda, arancione guida, teal della voce.
+   ========================================================================== */
+
+@theme {
+  /* --- Carta e superfici (calde, mai bianco freddo) --- */
+  --color-cream: #fdf9f3;
+  --color-surface: #ffffff;
+  --color-sand-50: #faf5ee;
+  --color-sand-100: #f4ece1;
+  --color-sand-200: #e9ddcd;
+  --color-sand-300: #d9c8b3;
+  --color-sand-400: #b9a48c;
+
+  /* --- Inchiostro (near-black caldo) --- */
+  --color-ink: #1c1a17;
+  --color-ink-soft: #4a443c;
+  --color-ink-muted: #7d7469;
+
+  /* --- Arancione guida: azioni, progresso, energia --- */
+  --color-brand-50: #fff5ef;
+  --color-brand-100: #ffe9dc;
+  --color-brand-200: #ffd0b3;
+  --color-brand-300: #ffae7d;
+  --color-brand-400: #ff8a47;
+  --color-brand-500: #f2570b;
+  --color-brand-600: #d9430a;
+  --color-brand-700: #b3340c;
+  --color-brand-800: #8f2b0e;
+
+  /* --- Teal della voce: tutto ciò che parla --- */
+  --color-voce-50: #eefbfa;
+  --color-voce-100: #dcf6f4;
+  --color-voce-200: #b6ebe7;
+  --color-voce-300: #82dad4;
+  --color-voce-400: #45c2bc;
+  --color-voce-500: #0e8c86;
+  --color-voce-600: #0b7570;
+  --color-voce-700: #0a5d59;
+
+  /* --- Accenti semantici --- */
+  --color-lilac-100: #ece9fb;
+  --color-lilac-500: #6e5bd8;
+  --color-lilac-600: #5a47c0;
+  --color-leaf-100: #e3f6e6;
+  --color-leaf-500: #2f9e44;
+  --color-leaf-600: #268038;
+  --color-rose-100: #ffe5e5;
+  --color-rose-500: #e03131;
+  --color-sun-100: #fff4d6;
+  --color-sun-500: #f08c00;
+
+  /* --- Tipografia --- */
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* --- Forma --- */
+  --radius-card: 20px;
+  --radius-pill: 9999px;
+
+  /* --- Ombre calde --- */
+  --shadow-soft: 0 1px 2px rgba(92, 71, 51, 0.05), 0 4px 12px rgba(92, 71, 51, 0.06);
+  --shadow-lift: 0 2px 4px rgba(92, 71, 51, 0.06), 0 12px 28px rgba(92, 71, 51, 0.1);
+  --shadow-brand: 0 8px 24px rgba(242, 87, 11, 0.24);
+  --shadow-voce: 0 8px 24px rgba(14, 140, 134, 0.24);
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Titoli in Fraunces: il "display" dell'app */
+.font-display,
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-variation-settings: "SOFT" 40, "WONK" 0;
+  letter-spacing: -0.02em;
+}
+
+::selection {
+  background: var(--color-brand-200);
+  color: var(--color-ink);
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-brand-400);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Numerali tabellari per punteggi e timer */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   Grana di carta: dà calore senza pesare sul rendering
+   ========================================================================== */
+
+.paper-grain {
+  position: relative;
+}
+.paper-grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ==========================================================================
+   Animazioni
+   ========================================================================== */
+
+@keyframes narra-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes narra-voce-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(14, 140, 134, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(14, 140, 134, 0);
+  }
+}
+
+@keyframes narra-bar {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes narra-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.animate-rise {
+  animation: narra-rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-voce-pulse {
+  animation: narra-voce-pulse 1.6s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-sand-100) 25%,
+    var(--color-sand-50) 50%,
+    var(--color-sand-100) 75%
+  );
+  background-size: 200% 100%;
+  animation: narra-shimmer 1.4s linear infinite;
+}
+
+/* Barrette dell'equalizzatore quando la voce sta leggendo */
+.voce-bar {
+  transform-origin: center bottom;
+  animation: narra-bar 0.9s ease-in-out infinite;
+}
+
+/* ==========================================================================
+   Accessibilità: rispetta chi riduce il movimento
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

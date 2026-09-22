@@ -1,0 +1,16 @@
+# Cloudflare Workers / Pages · configurazione minima
+#
+# Per Workers (raccomandato, come da documentazione Cloudflare):
+#   npx wrangler deploy
+#
+# Per Pages con upload diretto:
+#   npx wrangler pages deploy out --project-name=concorsofacile
+
+name = "concorsofacile"
+compatibility_date = "2026-01-01"
+
+# ConcorsoFacile è un export statico: gli asset vengono serviti così come sono.
+[assets]
+directory = "./out"
+# Una pagina non trovata ricade sul 404 generato da Next.
+not_found_handling = "404-page"
