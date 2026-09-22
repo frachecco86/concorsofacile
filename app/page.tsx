@@ -1,4 +1,5 @@
-import { ArrowRight, CalendarDays, MapPin, Users } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, BookOpen, CalendarDays, MapPin, Users } from "lucide-react";
 import {
   CONCORSI,
   dataIt,
@@ -156,6 +157,19 @@ function SchedaConcorso({ concorso: c }: { concorso: Concorso }) {
 
       {/* Corpo: materie */}
       <div className="border-t border-sage-200 px-5 pb-5 pt-4">
+        {conLezione > 0 && (
+          <Link
+            href={`/concorso/${c.id}/`}
+            className="mb-4 inline-flex w-full items-center justify-center gap-2 rounded-full
+                       bg-brand-500 px-6 py-3 text-sm font-bold text-cream
+                       shadow-[var(--shadow-brand)] transition hover:bg-brand-600
+                       active:scale-[0.99] sm:w-auto"
+          >
+            <BookOpen size={16} />
+            Studia {conLezione === 1 ? "la materia" : `le ${conLezione} materie`} con la voce
+          </Link>
+        )}
+
         <TendinaMaterie concorso={c} />
 
         {c.fonteUrl && (
