@@ -1,419 +1,638 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
-  BookOpen,
   Check,
   ChevronLeft,
   ChevronRight,
-  Lightbulb,
-  List as ListIcon,
+  Circle,
+  List,
+  Pause,
+  Play,
+  Repeat,
+  X,
 } from "lucide-react";
 import {
-  testoCapitolo,
   testoBlocco,
-  type Capitolo,
   type Lezione,
   type TipoBlocco,
 } from "@/lib/dati/lezioni";
 import { useVoce } from "@/lib/voce/hook";
-import { PulsanteVoce, ControlliTrasporto } from "./PulsanteVoce";
-import { slug } from "./slug";
+import { useStudio } from "@/lib/dati/studio";
 import { cn } from "@/lib/ui";
 
 /**
- * Lettore di mini-lezioni.
+ * Lettore di lezioni, ottimizzato per mobile.
  *
- * Due modalità di ascolto, entrambe esplicite:
- * - **Capitolo intero**: la voce legge tutto di seguito.
- * - **Blocco per blocco**: ogni blocco ha il suo pulsante, per riascoltare
- *   solo un punto.
+ * Architettura (modello "course player"):
  *
- * I capitoli già ascoltati restano segnati: è una traccia di avanzamento
- * minima, senza account.
+ * - **Barra del player fissa** in alto: capitolo corrente, avanzamento,
+ *   play/pausa, autoplay. Non scrolla via.
+ * - **Piano della lezione** a fisarmonica: si vede subito tutto il programma
+ *   in poco spazio, senza padding inutile.
+ * - **Autoplay**: legge il capitolo blocco per blocco e passa da solo al
+ *   successivo, capitolo dopo capitolo. Pensato per l'ascolto passivo.
+ * - **Dock di avanzamento**, visibile solo mentre si ascolta.
  */
-export function LettoreLezione({ lezioni }: { lezioni: Lezione[] }) {
+export function LettoreLezione({
+  lezioni,
+  concorsoId,
+}: {
+  lezioni: Lezione[];
+  concorsoId: string;
+}) {
   const [lezioneIdx, setLezioneIdx] = useState(0);
   const [capIdx, setCapIdx] = useState(0);
-  const [ascoltati, setAscoltati] = useState<Set<string>>(new Set());
-  const { ferma, stato } = useVoce();
+  /** Indice del blocco in lettura; `null` quando la voce è ferma. */
+  const [bloccoAttivo, setBloccoAttivo] = useState<number | null>(null);
+  const [autoplay, setAutoplay] = useState(false);
+  const [pianoAperto, setPianoAperto] = useState(false);
+
+  const { parla, ferma, stato, impostaFineLettura } = useVoce();
+  const { segnaCompletato, segnaAperto, completato, quantiCompletati, stato: studio } =
+    useStudio();
 
   const lezione = lezioni[lezioneIdx];
-  const capitolo: Capitolo | undefined = lezione?.capitoli[capIdx];
+  const capitolo = lezione?.capitoli[capIdx];
 
-  /** Chiave stabile per segnare un capitolo come ascoltato. */
-  const chiaveCapitolo = lezione && capitolo ? `${lezione.materia}#${capitolo.numero}` : "";
-
-  // Cambio capitolo o materia: la voce precedente va interrotta.
-  useEffect(() => {
-    ferma();
-  }, [lezioneIdx, capIdx, ferma]);
-
-  // Segna come ascoltato quando la voce finisce il capitolo intero.
-  const segnaAscoltato = useCallback(() => {
-    if (!chiaveCapitolo) return;
-    setAscoltati((s) => new Set(s).add(chiaveCapitolo));
-  }, [chiaveCapitolo]);
-
+  /**
+   * Vai a un capitolo specifico. È un **evento**, non una reazione: ferma la
+   * voce, azzera il blocco in lettura e registra dove siamo. Gestirlo qui
+   * evita un effect che reagisce al cambio di stato (e il render in più che
+   * ne deriverebbe).
+   */
   const vaiA = useCallback(
-    (dleta: number) => {
-      if (!lezione) return;
-      const prossimo = capIdx + dleta;
-      if (prossimo >= 0 && prossimo < lezione.capitoli.length) {
-        setCapIdx(prossimo);
-        return;
-      }
-      // Fine della materia: passa alla successiva, se c'è.
-      const prossimaLezione = lezioneIdx + 1;
-      if (dleta > 0 && prossimaLezione < lezioni.length) {
-        setLezioneIdx(prossimaLezione);
-        setCapIdx(0);
-      }
+    (li: number, ci: number) => {
+      ferma();
+      setBloccoAttivo(null);
+      setLezioneIdx(li);
+      setCapIdx(ci);
+      const l = lezioni[li];
+      const c = l?.capitoli[ci];
+      if (l && c) segnaAperto(concorsoId, l.materia, c.numero);
     },
-    [lezione, capIdx, lezioneIdx, lezioni.length]
+    [ferma, lezioni, concorsoId, segnaAperto]
   );
 
-  const totaleCapitoli = useMemo(
-    () => lezioni.reduce((s, l) => s + l.capitoli.length, 0),
-    [lezioni]
+  /** Passa al capitolo successivo, cambiando materia se serve. */
+  const capitoloSuccessivo = useCallback(() => {
+    if (!lezione) return;
+    if (capIdx + 1 < lezione.capitoli.length) {
+      vaiA(lezioneIdx, capIdx + 1);
+      return;
+    }
+    if (lezioneIdx + 1 < lezioni.length) {
+      vaiA(lezioneIdx + 1, 0);
+    }
+  }, [lezione, capIdx, lezioneIdx, lezioni.length, vaiA]);
+
+  /** Torna al capitolo precedente. */
+  const capitoloPrecedente = useCallback(() => {
+    if (capIdx > 0) {
+      vaiA(lezioneIdx, capIdx - 1);
+    } else if (lezioneIdx > 0) {
+      const precedente = lezioni[lezioneIdx - 1];
+      vaiA(lezioneIdx - 1, precedente.capitoli.length - 1);
+    }
+  }, [capIdx, lezioneIdx, lezioni, vaiA]);
+
+  /**
+   * Autoplay: quando un blocco finisce, legge il successivo.
+   * A fine capitolo lo segna completato e passa avanti.
+   */
+  useEffect(() => {
+    if (!autoplay || !capitolo || !lezione) {
+      impostaFineLettura(null);
+      return;
+    }
+
+    impostaFineLettura(() => {
+      setBloccoAttivo((corrente) => {
+        const prossimo = (corrente ?? -1) + 1;
+
+        if (prossimo < capitolo.blocchi.length) {
+          // Continua con il blocco successivo.
+          parla(testoBlocco(capitolo.blocchi[prossimo]), `auto-${prossimo}`);
+          return prossimo;
+        }
+
+        // Capitolo finito.
+        segnaCompletato(concorsoId, lezione.materia, capitolo.numero);
+        setBloccoAttivo(null);
+        capitoloSuccessivo();
+        return null;
+      });
+    });
+
+    return () => impostaFineLettura(null);
+  }, [
+    autoplay,
+    capitolo,
+    lezione,
+    concorsoId,
+    parla,
+    impostaFineLettura,
+    segnaCompletato,
+    capitoloSuccessivo,
+  ]);
+
+  // Smontaggio: la voce è un sistema esterno da fermare. Nessun setState qui.
+  useEffect(() => {
+    return () => ferma();
+  }, [lezioneIdx, capIdx, ferma]);
+
+  const avvia = useCallback(
+    (blocco: number) => {
+      if (!capitolo || !lezione) return;
+      setAutoplay(true);
+      setBloccoAttivo(blocco);
+      segnaAperto(concorsoId, lezione.materia, capitolo.numero);
+      parla(testoBlocco(capitolo.blocchi[blocco]), `auto-${blocco}`);
+    },
+    [capitolo, lezione, parla, concorsoId, segnaAperto]
+  );
+
+  const alternaPausa = useCallback(() => {
+    if (stato === "speaking") {
+      setAutoplay(false);
+      ferma();
+    } else if (bloccoAttivo !== null) {
+      avvia(bloccoAttivo);
+    } else {
+      avvia(0);
+    }
+  }, [stato, ferma, bloccoAttivo, avvia]);
+
+  const statoCapitolo = useCallback(
+    (materia: string, numero: number) =>
+      completato(concorsoId, materia, numero) ? "fatto" : "da-fare",
+    [completato, concorsoId]
   );
 
   if (lezioni.length === 0) {
     return (
-      <div className="rounded-2xl border-2 border-dashed border-sage-300 bg-sage-50 p-10 text-center">
-        <BookOpen size={30} className="mx-auto text-sage-400" />
-        <p className="mt-3 font-medium text-ink-soft">
-          Nessuna lezione disponibile per questo concorso.
-        </p>
-        <p className="mt-1 text-sm text-ink-muted">
-          Le materie sono elencate nella home: i capitoli sono in preparazione.
-        </p>
-      </div>
+      <p className="rounded-xl border border-dashed border-sage-300 bg-sage-50 p-4 text-sm text-ink-soft">
+        Nessuna lezione disponibile per questo concorso.
+      </p>
     );
   }
 
   if (!lezione || !capitolo) return null;
 
-  const fineMateria = capIdx === lezione.capitoli.length - 1;
-  const fineTutto = fineMateria && lezioneIdx === lezioni.length - 1;
+  const inAscolto = bloccoAttivo !== null && stato !== "idle";
+  const progresso = ((capIdx + 1) / lezione.capitoli.length) * 100;
 
   return (
-    <div className="space-y-6">
-      {/* Barra: materia + avanzamento */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-brand-100 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-brand-700">
-              Materia {lezioneIdx + 1} di {lezioni.length}
-            </span>
-            <span className="tnum text-xs text-ink-muted">
-              capitolo {capIdx + 1}/{lezione.capitoli.length}
-            </span>
+    <div className="pb-24">
+      {/* ══════════ BARRA PLAYER (sticky) ══════════ */}
+      <div className="sticky top-14 z-30 -mx-4 border-b border-sage-200 bg-cream/95 px-3 py-2 backdrop-blur-lg sm:-mx-6 sm:top-16 sm:px-6">
+        <div className="flex items-center gap-2.5">
+          {/* Play / pausa: il controllo primario */}
+          <button
+            type="button"
+            onClick={alternaPausa}
+            aria-label={inAscolto ? "Pausa" : "Ascolta"}
+            className={cn(
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition active:scale-95",
+              inAscolto
+                ? "bg-voce-500 text-white shadow-[var(--shadow-voce)]"
+                : "bg-brand-500 text-white shadow-[var(--shadow-brand)]"
+            )}
+          >
+            {inAscolto ? (
+              <Pause size={17} fill="currentColor" />
+            ) : (
+              <Play size={17} fill="currentColor" className="ml-0.5" />
+            )}
+          </button>
+
+          {/* Titolo del capitolo + avanzamento */}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[12.5px] font-semibold leading-tight">
+              {capitolo.titolo}
+            </p>
+            <p className="mt-0.5 flex items-center gap-1 text-[10.5px] text-ink-muted">
+              <span className="truncate">{lezione.materia}</span>
+              <span className="text-sage-300">·</span>
+              <span className="tnum shrink-0">
+                {capIdx + 1}/{lezione.capitoli.length}
+              </span>
+            </p>
           </div>
-          <h2 className="mt-1.5 font-display text-xl font-semibold leading-tight">
-            {lezione.materia}
-          </h2>
+
+          {/* Piano della lezione */}
+          <button
+            type="button"
+            onClick={() => setPianoAperto((v) => !v)}
+            aria-expanded={pianoAperto}
+            aria-label="Piano della lezione"
+            className={cn(
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition",
+              pianoAperto
+                ? "bg-brand-100 text-brand-700"
+                : "text-ink-soft hover:bg-sage-100"
+            )}
+          >
+            <List size={17} />
+          </button>
+
+          {/* Navigazione tra capitoli */}
+          <div className="flex shrink-0 items-center">
+            <button
+              type="button"
+              onClick={capitoloPrecedente}
+              disabled={lezioneIdx === 0 && capIdx === 0}
+              aria-label="Capitolo precedente"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-ink-soft transition hover:bg-sage-100 disabled:opacity-30"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={capitoloSuccessivo}
+              disabled={
+                lezioneIdx === lezioni.length - 1 &&
+                capIdx === lezione.capitoli.length - 1
+              }
+              aria-label="Capitolo successivo"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-ink-soft transition hover:bg-sage-100 disabled:opacity-30"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
         </div>
-        <ControlliTrasporto />
+
+        {/* Avanzamento nel capitolo */}
+        <div className="mt-1.5 h-0.5 overflow-hidden rounded-full bg-sage-200">
+          <motion.div
+            className="h-full rounded-full bg-brand-500"
+            initial={false}
+            animate={{ width: `${progresso}%` }}
+            transition={{ type: "spring", stiffness: 280, damping: 34 }}
+          />
+        </div>
       </div>
 
-      {/* Selettore materia */}
-      {lezioni.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {lezioni.map((l, i) => {
-            const fatti = l.capitoli.filter((c) =>
-              ascoltati.has(`${l.materia}#${c.numero}`)
-            ).length;
-            return (
-              <button
-                key={l.materia}
-                type="button"
-                onClick={() => {
-                  setLezioneIdx(i);
-                  setCapIdx(0);
-                  // Porta l'attenzione al titolo della materia appena scelta.
-                  document
-                    .getElementById(`cap-${slug(l.materia)}`)
-                    ?.scrollIntoView({ block: "start" });
-                }}
-                className={cn(
-                  "shrink-0 rounded-full border px-3.5 py-2 text-left text-xs font-semibold transition",
-                  i === lezioneIdx
-                    ? "border-brand-500 bg-brand-500 text-cream"
-                    : "border-sage-200 bg-surface text-ink-soft hover:border-brand-300"
-                )}
-              >
-                <span className="block max-w-[16rem] truncate">{l.materia}</span>
-                <span
-                  className={cn(
-                    "tnum block text-[10px] font-medium",
-                    i === lezioneIdx ? "text-brand-100" : "text-ink-muted"
-                  )}
-                >
-                  {fatti}/{l.capitoli.length} ascoltati
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {/* ══════════ PIANO DELLA LEZIONE (a fisarmonica) ══════════ */}
+      <AnimatePresence initial={false}>
+        {pianoAperto && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="mt-2 max-h-[45dvh] space-y-0.5 overflow-y-auto rounded-xl border border-sage-200 bg-surface p-1.5">
+              {lezioni.map((l, li) => {
+                const fatti = quantiCompletati(concorsoId, l.materia);
+                return (
+                  <div key={l.materia}>
+                    <div className="flex items-center gap-2 px-2 py-1.5">
+                      <span className="min-w-0 flex-1 truncate text-[12px] font-bold">
+                        {l.materia}
+                      </span>
+                      <span className="tnum shrink-0 text-[10px] text-ink-muted">
+                        {fatti}/{l.capitoli.length}
+                      </span>
+                    </div>
+                    {l.capitoli.map((c) => {
+                      const attivo = li === lezioneIdx && c.numero === capitolo.numero;
+                      return (
+                        <button
+                          key={c.numero}
+                          type="button"
+                          onClick={() => {
+                            vaiA(li, c.numero - 1);
+                            setPianoAperto(false);
+                          }}
+                          className={cn(
+                            "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left transition",
+                            attivo ? "bg-brand-50" : "hover:bg-sage-50"
+                          )}
+                        >
+                          {statoCapitolo(l.materia, c.numero) === "fatto" ? (
+                            <Check
+                              size={13}
+                              strokeWidth={3}
+                              className="shrink-0 text-leaf-500"
+                            />
+                          ) : (
+                            <Circle size={13} className="shrink-0 text-sage-300" />
+                          )}
+                          <span
+                            className={cn(
+                              "min-w-0 flex-1 truncate text-[12px]",
+                              attivo ? "font-semibold text-brand-700" : "text-ink-soft"
+                            )}
+                          >
+                            {c.numero}. {c.titolo}
+                          </span>
+                          <span className="tnum shrink-0 text-[10px] text-ink-muted">
+                            {c.minuti.toFixed(1)}′
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Ancore: rendono funzionanti i link dalla tendina della home. */}
-      <span id={`cap-${slug(lezione.materia)}`} className="block scroll-mt-24" />
-      <span
-        id={`cap-${slug(lezione.materia)}-${capitolo.numero}`}
-        className="block scroll-mt-24"
-      />
-
-      {/* Capitolo corrente */}
+      {/* ══════════ CONTENUTO DEL CAPITOLO ══════════ */}
       <AnimatePresence mode="wait">
         <motion.article
           key={`${lezioneIdx}-${capIdx}`}
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-          className="paper-grain relative overflow-hidden rounded-[28px] border border-sage-200 bg-surface shadow-[var(--shadow-lift)]"
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          className="mt-2"
         >
-          <div className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-brand-400 to-brand-600" />
+          <h1 className="font-display text-lg font-semibold leading-snug sm:text-xl">
+            {capitolo.titolo}
+          </h1>
+          <p className="tnum mt-0.5 text-[10.5px] font-semibold uppercase tracking-wider text-brand-600">
+            Capitolo {capitolo.numero} · {capitolo.minuti.toFixed(1)} min · {capitolo.blocchi.length} blocchi
+          </p>
 
-          <div className="relative p-6 pl-8 sm:p-8 sm:pl-10">
-            <p className="tnum text-xs font-bold uppercase tracking-wider text-brand-600">
-              Capitolo {capitolo.numero}
-            </p>
-            <h3 className="mt-1 font-display text-2xl font-semibold leading-tight sm:text-[28px]">
-              {capitolo.titolo}
-            </h3>
-
-            {/* Ascolta tutto il capitolo */}
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <PulsanteVoce
-                testo={testoCapitolo(capitolo)}
-                tag={chiaveCapitolo}
-                dimensione="lg"
-                etichetta="Ascolta il capitolo"
-              />
-              <span className="text-xs text-ink-muted">
-                {capitolo.minuti.toFixed(1)} min ·{" "}
-                {capitolo.blocchi.length} blocchi
-              </span>
-              {ascoltati.has(chiaveCapitolo) && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-leaf-100 px-2.5 py-1 text-[11px] font-bold text-leaf-600">
-                  <Check size={12} strokeWidth={3} />
-                  ascoltato
-                </span>
-              )}
-            </div>
-
-            {/* Blocchi */}
-            <div className="mt-7 space-y-5">
-              {capitolo.blocchi.map((b, i) => (
+          {/* Blocchi, compatti */}
+          <div className="mt-2 space-y-1.5">
+            {capitolo.blocchi.map((b, i) => {
+              const attivo = bloccoAttivo === i;
+              return (
                 <Blocco
                   key={i}
                   blocco={b}
                   indice={i + 1}
-                  tag={`${chiaveCapitolo}#blocco-${i}`}
-                  onFine={i === capitolo.blocchi.length - 1 ? segnaAscoltato : undefined}
+                  attivo={attivo}
+                  inRiproduzione={attivo && stato === "speaking"}
+                  evidenziaPosizione={attivo ? undefined : undefined}
+                  onAscolta={() => avvia(i)}
                 />
-              ))}
-            </div>
-          </div>
-
-          {/* Navigazione */}
-          <div className="relative flex items-center justify-between gap-3 border-t border-sage-200 bg-sage-50/60 px-6 py-4 pl-8 sm:px-8 sm:pl-10">
-            <button
-              type="button"
-              onClick={() => vaiA(-1)}
-              disabled={lezioneIdx === 0 && capIdx === 0}
-              className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold text-ink-soft transition hover:bg-sage-100 disabled:pointer-events-none disabled:opacity-40"
-            >
-              <ChevronLeft size={16} />
-              Indietro
-            </button>
-
-            <span className="tnum hidden text-xs text-ink-muted sm:block">
-              {ascoltati.size}/{totaleCapitoli} capitoli ascoltati
-            </span>
-
-            <button
-              type="button"
-              onClick={() => {
-                if (fineTutto) segnaAscoltato();
-                vaiA(1);
-              }}
-              disabled={fineTutto && ascoltati.has(chiaveCapitolo)}
-              className="inline-flex items-center gap-1.5 rounded-full bg-brand-500 px-5 py-2.5 text-sm font-bold text-cream shadow-[var(--shadow-brand)] transition hover:bg-brand-600 disabled:pointer-events-none disabled:opacity-40"
-            >
-              {fineTutto ? "Concludi" : fineMateria ? "Materia successiva" : "Avanti"}
-              <ChevronRight size={16} />
-            </button>
+              );
+            })}
           </div>
         </motion.article>
       </AnimatePresence>
 
-      {/* Se la voce sta leggendo, il testo si evidenzia nel blocco interessato */}
-      {stato !== "idle" && (
-        <p className="text-center text-xs text-ink-muted">
-          La voce sta leggendo. Puoi fermarla o metterla in pausa dai controlli
-          in alto.
-        </p>
-      )}
+      {/* ══════════ DOCK DI ASCOLTO ══════════ */}
+      <AnimatePresence>
+        {inAscolto && (
+          <motion.div
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 420, damping: 36 }}
+            className="fixed inset-x-0 bottom-0 z-40 border-t border-voce-200 bg-cream/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-lg"
+          >
+            <div className="mx-auto flex max-w-3xl items-center gap-3">
+              <button
+                type="button"
+                onClick={alternaPausa}
+                aria-label="Pausa"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-voce-500 text-white shadow-[var(--shadow-voce)] active:scale-95"
+              >
+                <Pause size={18} fill="currentColor" />
+              </button>
+
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[12px] font-semibold">
+                  {lezione.materia}
+                </p>
+                <p className="tnum text-[11px] text-ink-muted">
+                  blocco {bloccoAttivo! + 1}/{capitolo.blocchi.length}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setAutoplay((v) => !v)}
+                aria-pressed={autoplay}
+                title="Riproduzione automatica"
+                className={cn(
+                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition",
+                  autoplay
+                    ? "border-brand-400 bg-brand-50 text-brand-700"
+                    : "border-sage-200 text-ink-muted"
+                )}
+              >
+                <Repeat size={16} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setAutoplay(false);
+                  ferma();
+                  setBloccoAttivo(null);
+                }}
+                aria-label="Chiudi il lettore"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-ink-muted transition hover:bg-sage-100"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Riprendi, se c'era un capitolo aperto in precedenza */}
+      <Riprendi
+        ultimo={studio.ultimo}
+        concorsoId={concorsoId}
+        lezioni={lezioni}
+        corrente={{ materia: lezione.materia, capitolo: capitolo.numero }}
+        onVai={(materia, numero) => {
+          const li = lezioni.findIndex((l) => l.materia === materia);
+          if (li >= 0) vaiA(li, numero - 1);
+        }}
+      />
     </div>
   );
 }
 
-/** Un blocco di contenuto, con il suo pulsante di ascolto. */
+/** Un blocco: riga compatta, niente padding inutile. */
 function Blocco({
   blocco,
   indice,
-  tag,
-  onFine,
+  attivo,
+  inRiproduzione,
+  evidenziaPosizione,
+  onAscolta,
 }: {
   blocco: TipoBlocco;
   indice: number;
-  tag: string;
-  onFine?: () => void;
+  attivo: boolean;
+  inRiproduzione: boolean;
+  evidenziaPosizione?: number;
+  onAscolta: () => void;
 }) {
-  const { testoInLettura, stato, posizione } = useVoce();
+  const { testoInLettura, posizione } = useVoce();
   const testo = testoBlocco(blocco);
-  const attivo = testoInLettura === testo && (stato === "speaking" || stato === "paused");
-
-  // Il primo blocco porta il numero del blocco; gli altri no.
-  const intestazione =
-    blocco.tipo === "punti" && blocco.titolo
-      ? blocco.titolo
-      : blocco.tipo === "definizione"
-        ? null
-        : null;
+  const evidenzia = inRiproduzione && testoInLettura === testo;
 
   return (
     <div
       className={cn(
-        "group/blocco relative rounded-2xl border p-4 transition",
+        "rounded-xl border px-3 py-2.5 transition",
         attivo
-          ? "border-voce-300 bg-voce-50/60"
-          : "border-transparent hover:border-sage-200 hover:bg-sage-50/50"
+          ? "border-voce-300 bg-voce-50"
+          : "border-sage-200 bg-surface hover:border-sage-300"
       )}
     >
-      <div className="flex gap-3">
-        <span className="mt-0.5 flex shrink-0 flex-col items-center gap-2">
-          <span className="tnum flex h-6 w-6 items-center justify-center rounded-md bg-sage-100 text-[11px] font-bold text-ink-muted">
-            {indice}
-          </span>
-        </span>
+      <div className="flex gap-2.5">
+        <button
+          type="button"
+          onClick={onAscolta}
+          aria-label={`Ascolta il blocco ${indice}`}
+          className={cn(
+            "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition active:scale-95",
+            attivo
+              ? "bg-voce-500 text-white"
+              : "bg-sage-100 text-ink-muted hover:bg-brand-100 hover:text-brand-700"
+          )}
+        >
+          {inRiproduzione ? (
+            <Pause size={12} fill="currentColor" />
+          ) : (
+            <Play size={12} fill="currentColor" className="ml-px" />
+          )}
+        </button>
 
         <div className="min-w-0 flex-1">
-          {intestazione && (
-            <p className="mb-2 flex items-center gap-2 text-sm font-bold text-ink">
-              <ListIcon size={14} className="text-brand-500" />
-              {intestazione}
+          {blocco.tipo === "punti" && blocco.titolo && (
+            <p className="mb-1 text-[13px] font-bold">{blocco.titolo}</p>
+          )}
+          {blocco.tipo === "definizione" && (
+            <p className="mb-0.5 text-[11px] font-bold uppercase tracking-wide text-brand-700">
+              {blocco.termine}
+            </p>
+          )}
+          {blocco.tipo === "nota" && (
+            <p className="mb-0.5 text-[11px] font-bold uppercase tracking-wide text-sun-600">
+              Nota
+            </p>
+          )}
+          {blocco.tipo === "esempio" && (
+            <p className="mb-0.5 text-[11px] font-bold uppercase tracking-wide text-ink-muted">
+              Esempio
             </p>
           )}
 
-          <ContenutoBlocco
+          <Corpo
             blocco={blocco}
-            attivo={attivo}
+            evidenzia={evidenzia}
             posizione={posizione}
+            evidenziaPosizione={evidenziaPosizione}
           />
         </div>
-
-        <div className="shrink-0">
-          <PulsanteVoce testo={testo} tag={tag} dimensione="sm" />
-        </div>
       </div>
-
-      {/* `onFine` è usato dal lettore per segnare il capitolo; per ora il segna
-          avviene a fine capitolo intero, non a fine blocco. */}
-      <span hidden>{onFine ? "" : ""}</span>
     </div>
   );
 }
 
-function ContenutoBlocco({
+function Corpo({
   blocco,
-  attivo,
+  evidenzia,
   posizione,
 }: {
   blocco: TipoBlocco;
-  attivo: boolean;
+  evidenzia: boolean;
   posizione: number;
+  evidenziaPosizione?: number;
 }) {
-  switch (blocco.tipo) {
-    case "paragrafo":
-      return (
-        <p className="text-[15px] leading-relaxed text-ink-soft sm:text-base">
-          <Evidenzia testo={blocco.testo} attivo={attivo} posizione={posizione} />
-        </p>
-      );
+  const t = (testo: string) =>
+    evidenzia ? (
+      <>
+        <span className="rounded bg-brand-100 text-ink">
+          {testo.slice(0, Math.min(posizione, testo.length))}
+        </span>
+        {testo.slice(Math.min(posizione, testo.length))}
+      </>
+    ) : (
+      <>{testo}</>
+    );
 
-    case "definizione":
-      return (
-        <div className="rounded-xl border border-brand-200 bg-brand-50/70 px-4 py-3">
-          <p className="text-xs font-bold uppercase tracking-wider text-brand-700">
-            {blocco.termine}
-          </p>
-          <p className="mt-1 text-[15px] leading-relaxed text-ink">
-            <Evidenzia testo={blocco.testo} attivo={attivo} posizione={posizione} />
-          </p>
-        </div>
-      );
-
-    case "punti":
-      return (
-        <ul className="space-y-2">
-          {blocco.voci.map((v, i) => (
-            <li key={i} className="flex gap-2.5 text-[15px] leading-relaxed text-ink-soft">
-              <span
-                aria-hidden="true"
-                className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-400"
-              />
-              <span>{v}</span>
-            </li>
-          ))}
-        </ul>
-      );
-
-    case "nota":
-      return (
-        <div className="flex gap-3 rounded-xl border border-sun-500/25 bg-sun-100/60 px-4 py-3">
-          <Lightbulb size={16} className="mt-0.5 shrink-0 text-sun-600" />
-          <p className="text-sm leading-relaxed text-ink-soft">
-            <Evidenzia testo={blocco.testo} attivo={attivo} posizione={posizione} />
-          </p>
-        </div>
-      );
-
-    case "esempio":
-      return (
-        <div className="rounded-xl border border-sage-200 bg-sage-50 px-4 py-3">
-          <p className="text-xs font-bold uppercase tracking-wider text-ink-muted">
-            Esempio
-          </p>
-          <p className="mt-1 text-sm leading-relaxed text-ink-soft">
-            <Evidenzia testo={blocco.testo} attivo={attivo} posizione={posizione} />
-          </p>
-        </div>
-      );
+  if (blocco.tipo === "punti") {
+    return (
+      <ul className="space-y-1">
+        {blocco.voci.map((v, i) => (
+          <li key={i} className="flex gap-2 text-[13.5px] leading-snug text-ink-soft">
+            <span
+              aria-hidden="true"
+              className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-brand-400"
+            />
+            <span>{v}</span>
+          </li>
+        ))}
+      </ul>
+    );
   }
+
+  const testo =
+    blocco.tipo === "paragrafo" ||
+    blocco.tipo === "definizione" ||
+    blocco.tipo === "nota" ||
+    blocco.tipo === "esempio"
+      ? blocco.testo
+      : "";
+
+  return (
+    <p className="text-[13.5px] leading-snug text-ink-soft">{t(testo)}</p>
+  );
 }
 
-/** Evidenzia il tratto già letto, quando il blocco è in ascolto. */
-function Evidenzia({
-  testo,
-  attivo,
-  posizione,
+/** Invito a riprendere l'ultimo capitolo, discreto. */
+function Riprendi({
+  ultimo,
+  concorsoId,
+  lezioni,
+  corrente,
+  onVai,
 }: {
-  testo: string;
-  attivo: boolean;
-  posizione: number;
+  ultimo: { concorsoId: string; materia: string; capitolo: number } | null;
+  concorsoId: string;
+  lezioni: Lezione[];
+  corrente: { materia: string; capitolo: number };
+  onVai: (materia: string, numero: number) => void;
 }) {
-  if (!attivo) return <>{testo}</>;
-  const taglio = Math.max(0, Math.min(posizione, testo.length));
+  const [nascosto, setNascosto] = useState(false);
+
+  const pertinente =
+    !nascosto &&
+    !!ultimo &&
+    ultimo.concorsoId === concorsoId &&
+    !(ultimo.materia === corrente.materia && ultimo.capitolo === corrente.capitolo) &&
+    lezioni.some((l) => l.materia === ultimo!.materia);
+
+  if (!pertinente || !ultimo) return null;
+
   return (
-    <>
-      <span className="rounded bg-brand-100 text-ink">{testo.slice(0, taglio)}</span>
-      <span>{testo.slice(taglio)}</span>
-    </>
+    <div className="mt-4 flex items-center gap-3 rounded-xl border border-brand-200 bg-brand-50 px-3 py-2.5">
+      <span className="min-w-0 flex-1 text-[12px]">
+        <b className="font-semibold">Riprendi</b> da {ultimo.materia}, capitolo{" "}
+        {ultimo.capitolo}.
+      </span>
+      <button
+        type="button"
+        onClick={() => onVai(ultimo.materia, ultimo.capitolo)}
+        className="shrink-0 rounded-full bg-brand-500 px-3.5 py-1.5 text-[12px] font-bold text-cream"
+      >
+        Vai
+      </button>
+      <button
+        type="button"
+        onClick={() => setNascosto(true)}
+        aria-label="Chiudi"
+        className="shrink-0 text-ink-muted"
+      >
+        <X size={15} />
+      </button>
+    </div>
   );
 }

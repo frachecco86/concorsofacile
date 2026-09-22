@@ -52,6 +52,13 @@ interface ValoreVoce {
   commuta: (testo: string, tag?: string) => void;
   ferma: () => void;
   commutaPausa: () => void;
+  /**
+   * Registra un callback chiamato **una volta** quando la lettura in corso
+   * finisce naturalmente (non quando viene interrotta). Serve alla riproduzione
+   * automatica: il lettore lo usa per passare al blocco successivo.
+   * Passare `null` per rimuoverlo.
+   */
+  impostaFineLettura: (cb: (() => void) | null) => void;
 }
 
 const ContestoVoce = createContext<ValoreVoce | null>(null);
@@ -131,6 +138,9 @@ export function FornitoreVoce({ children }: { children: React.ReactNode }) {
     }
   }, [motore, impostazioni, pronto]);
 
+  // Callback chiamato a fine lettura naturale (per l'autoplay).
+  const fineLetturaRef = useRef<(() => void) | null>(null);
+
   // ------------------------------------------------------------ comandi
   const ferma = useCallback(() => {
     gestoreRef.current?.ferma();
@@ -156,6 +166,8 @@ export function FornitoreVoce({ children }: { children: React.ReactNode }) {
           setTestoInLettura(null);
           setTagInLettura(null);
           setPosizione(0);
+          // Avvisa chi aspetta la fine (es. autoplay del lettore).
+          fineLetturaRef.current?.();
         },
         onParola: (i) => setPosizione(i),
         onErrore: () => setStato("idle"),
@@ -163,6 +175,10 @@ export function FornitoreVoce({ children }: { children: React.ReactNode }) {
     },
     [impostazioni]
   );
+
+  const impostaFineLettura = useCallback((cb: (() => void) | null) => {
+    fineLetturaRef.current = cb;
+  }, []);
 
   const commuta = useCallback(
     (testo: string, tag?: string) => {
@@ -249,6 +265,7 @@ export function FornitoreVoce({ children }: { children: React.ReactNode }) {
       commuta,
       ferma,
       commutaPausa,
+      impostaFineLettura,
     }),
     [
       motore,
@@ -269,6 +286,7 @@ export function FornitoreVoce({ children }: { children: React.ReactNode }) {
       commuta,
       ferma,
       commutaPausa,
+      impostaFineLettura,
     ]
   );
 

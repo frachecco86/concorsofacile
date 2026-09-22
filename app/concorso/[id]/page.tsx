@@ -45,32 +45,32 @@ export default async function PaginaConcorso({
   );
 
   return (
-    <main className="mx-auto max-w-3xl px-4 pb-24 pt-8 sm:px-6 sm:pt-12">
-      <Link
-        href="/"
-        className="inline-flex items-center gap-2 text-sm font-semibold text-ink-muted transition hover:text-brand-600"
-      >
-        <ArrowLeft size={16} />
-        Concorsi
-      </Link>
+    <main className="mx-auto max-w-3xl px-4 pb-20 pt-2 sm:px-6 sm:pt-4">
+      <div className="flex items-baseline gap-2">
+        <Link
+          href="/"
+          className="inline-flex shrink-0 items-center gap-1 text-[12px] font-semibold text-ink-muted transition hover:text-brand-600"
+        >
+          <ArrowLeft size={13} />
+          Concorsi
+        </Link>
+      </div>
 
-      <header className="mt-5 mb-8">
-        <h1 className="font-display text-2xl font-semibold leading-tight sm:text-3xl">
+      <header className="mb-1.5 mt-0.5">
+        <h1 className="font-display text-[17px] font-semibold leading-snug sm:text-xl">
           {concorso.titolo}
         </h1>
-        <p className="mt-1.5 text-ink-soft">{concorso.ente}</p>
-        {conLezione.length > 0 && (
-          <p className="mt-3 text-sm text-ink-muted">
-            {conLezione.length} materie con lezione pronta ·{" "}
-            <b className="tnum font-semibold text-ink-soft">
-              {minutiTotali.toFixed(1)}
-            </b>{" "}
-            minuti di ascolto
-          </p>
-        )}
+        <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[12px] text-ink-muted">
+          <span>{concorso.ente}</span>
+          {conLezione.length > 0 && (
+            <span className="tnum">
+              · {conLezione.length} materie · {minutiTotali.toFixed(1)} min
+            </span>
+          )}
+        </p>
       </header>
 
-      <LettoreLezione lezioni={conLezione} />
+      <LettoreLezione lezioni={conLezione} concorsoId={concorso.id} />
     </main>
   );
 }

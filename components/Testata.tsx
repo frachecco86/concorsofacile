@@ -23,13 +23,13 @@ export function Testata() {
   return (
     <>
       <header className="sticky top-0 z-40 border-b border-sage-200/80 bg-cream/85 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-5xl items-center gap-3 px-4 sm:px-6">
+        <div className="mx-auto flex h-14 max-w-5xl items-center gap-2.5 px-3 sm:h-16 sm:gap-3 sm:px-6">
           <Link href="/" className="group flex items-center gap-2.5">
-            <span className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500 text-white shadow-[var(--shadow-brand)] transition group-hover:scale-105">
+            <span className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 sm:h-9 sm:w-9 sm:rounded-xl text-white shadow-[var(--shadow-brand)] transition group-hover:scale-105">
               <span className="font-display text-lg font-semibold leading-none">N</span>
             </span>
             <span className="flex flex-col leading-none">
-              <span className="font-display text-xl font-semibold tracking-tight">
+              <span className="font-display text-[17px] font-semibold tracking-tight sm:text-xl">
                 ConcorsoFacile
               </span>
               <span className="hidden text-[11px] font-medium text-ink-muted sm:block">
@@ -87,7 +87,7 @@ export function Testata() {
           </div>
         </div>
 
-        <nav className="flex items-center gap-1 border-t border-sage-200/70 px-3 py-2 sm:hidden">
+        <nav className="flex items-stretch border-t border-sage-200/70 sm:hidden">
           {voci.map((v) => {
             const attivo =
               v.href === "/" ? percorso === "/" : percorso.startsWith(v.href);
@@ -96,13 +96,18 @@ export function Testata() {
                 key={v.href}
                 href={v.href}
                 className={cn(
-                  "flex-1 rounded-full px-3 py-1.5 text-center text-sm font-medium transition",
-                  attivo
-                    ? "bg-brand-100 text-brand-700"
-                    : "text-ink-soft hover:bg-sage-100"
+                  "relative flex-1 py-2.5 text-center text-[13px] font-semibold transition",
+                  attivo ? "text-brand-700" : "text-ink-muted"
                 )}
               >
                 {v.etichetta}
+                {/* Barretta della scheda attiva */}
+                {attivo && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-brand-500"
+                  />
+                )}
               </Link>
             );
           })}
