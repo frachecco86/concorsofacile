@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Check,
@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Circle,
   List,
+  Loader2,
   Pause,
   Play,
   Repeat,
@@ -21,6 +22,9 @@ import {
 import { useVoce } from "@/lib/voce/hook";
 import { useStudio } from "@/lib/dati/studio";
 import { cn } from "@/lib/ui";
+
+/** Velocità selezionabili nel dock di ascolto. */
+const VELOCITA = [1, 1.25, 1.5, 2] as const;
 
 /**
  * Lettore di lezioni, ottimizzato per mobile.
@@ -48,8 +52,15 @@ export function LettoreLezione({
   const [bloccoAttivo, setBloccoAttivo] = useState<number | null>(null);
   const [autoplay, setAutoplay] = useState(false);
   const [pianoAperto, setPianoAperto] = useState(false);
+  /**
+   * Blocco attualmente in lettura, in un ref oltre che nello state.
+   * L'autoplay ne ha bisogno *sincronamente* quando un blocco finisce:
+   * leggere lo state lì darebbe un valore vecchio di un render.
+   */
+  const bloccoRef = useRef<number | null>(null);
 
-  const { parla, ferma, stato, impostaFineLettura } = useVoce();
+  const { parla, ferma, stato, impostaFineLettura, prefetch, aggiorna, impostazioni } =
+    useVoce();
   const { segnaCompletato, segnaAperto, completato, quantiCompletati, stato: studio } =
     useStudio();
 
@@ -65,6 +76,7 @@ export function LettoreLezione({
   const vaiA = useCallback(
     (li: number, ci: number) => {
       ferma();
+      bloccoRef.current = null;
       setBloccoAttivo(null);
       setLezioneIdx(li);
       setCapIdx(ci);
@@ -108,21 +120,29 @@ export function LettoreLezione({
     }
 
     impostaFineLettura(() => {
-      setBloccoAttivo((corrente) => {
-        const prossimo = (corrente ?? -1) + 1;
+      // Gli effetti collaterali (parlare, prefetch, segnare) stanno QUI,
+      // non dentro un updater di stato: gli updater devono essere puri e
+      // React può eseguirli due volte in modalità Strict.
+      const prossimo = (bloccoRef.current ?? -1) + 1;
 
-        if (prossimo < capitolo.blocchi.length) {
-          // Continua con il blocco successivo.
-          parla(testoBlocco(capitolo.blocchi[prossimo]), `auto-${prossimo}`);
-          return prossimo;
-        }
+      if (prossimo < capitolo.blocchi.length) {
+        bloccoRef.current = prossimo;
+        setBloccoAttivo(prossimo);
+        // Legge il blocco appena raggiunto e prepara quello dopo ancora.
+        parla(testoBlocco(capitolo.blocchi[prossimo]), `auto-${prossimo}`);
+        const ancora = capitolo.blocchi[prossimo + 1];
+        if (ancora) prefetch(testoBlocco(ancora));
+        return;
+      }
 
-        // Capitolo finito.
-        segnaCompletato(concorsoId, lezione.materia, capitolo.numero);
-        setBloccoAttivo(null);
-        capitoloSuccessivo();
-        return null;
-      });
+      // Capitolo finito: prepara il primo blocco del capitolo successivo,
+      // così il passaggio non ha attesa.
+      const dopo = capitoloDopo(lezioni, lezioneIdx, capIdx);
+      if (dopo) prefetch(testoBlocco(dopo.blocco));
+      segnaCompletato(concorsoId, lezione.materia, capitolo.numero);
+      bloccoRef.current = null;
+      setBloccoAttivo(null);
+      capitoloSuccessivo();
     });
 
     return () => impostaFineLettura(null);
@@ -132,9 +152,13 @@ export function LettoreLezione({
     lezione,
     concorsoId,
     parla,
+    prefetch,
     impostaFineLettura,
     segnaCompletato,
     capitoloSuccessivo,
+    lezioni,
+    lezioneIdx,
+    capIdx,
   ]);
 
   // Smontaggio: la voce è un sistema esterno da fermare. Nessun setState qui.
@@ -146,11 +170,15 @@ export function LettoreLezione({
     (blocco: number) => {
       if (!capitolo || !lezione) return;
       setAutoplay(true);
+      bloccoRef.current = blocco;
       setBloccoAttivo(blocco);
       segnaAperto(concorsoId, lezione.materia, capitolo.numero);
       parla(testoBlocco(capitolo.blocchi[blocco]), `auto-${blocco}`);
+      // Prepara il blocco successivo: quando ci arriva, l'audio è già pronto.
+      const prossimo = capitolo.blocchi[blocco + 1];
+      if (prossimo) prefetch(testoBlocco(prossimo));
     },
-    [capitolo, lezione, parla, concorsoId, segnaAperto]
+    [capitolo, lezione, parla, prefetch, concorsoId, segnaAperto]
   );
 
   const alternaPausa = useCallback(() => {
@@ -181,6 +209,12 @@ export function LettoreLezione({
   if (!lezione || !capitolo) return null;
 
   const inAscolto = bloccoAttivo !== null && stato !== "idle";
+  /**
+   * La voce neurale impiega 1-3s a sintetizzare. In quel momento `stato` è
+   * ancora "idle": senza un indicatore l'utente crede che non sia successo
+   * nulla. Questo flag copre esattamente quella finestra.
+   */
+  const inPreparazione = bloccoAttivo !== null && stato === "idle";
   const progresso = ((capIdx + 1) / lezione.capitoli.length) * 100;
 
   return (
@@ -200,7 +234,9 @@ export function LettoreLezione({
                 : "bg-brand-500 text-white shadow-[var(--shadow-brand)]"
             )}
           >
-            {inAscolto ? (
+            {inPreparazione ? (
+              <Loader2 size={17} className="animate-spin" />
+            ) : inAscolto ? (
               <Pause size={17} fill="currentColor" />
             ) : (
               <Play size={17} fill="currentColor" className="ml-0.5" />
@@ -382,7 +418,7 @@ export function LettoreLezione({
 
       {/* ══════════ DOCK DI ASCOLTO ══════════ */}
       <AnimatePresence>
-        {inAscolto && (
+        {(inAscolto || inPreparazione) && (
           <motion.div
             initial={{ y: 80, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -390,52 +426,97 @@ export function LettoreLezione({
             transition={{ type: "spring", stiffness: 420, damping: 36 }}
             className="fixed inset-x-0 bottom-0 z-40 border-t border-voce-200 bg-cream/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-lg"
           >
-            <div className="mx-auto flex max-w-3xl items-center gap-3">
-              <button
-                type="button"
-                onClick={alternaPausa}
-                aria-label="Pausa"
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-voce-500 text-white shadow-[var(--shadow-voce)] active:scale-95"
-              >
-                <Pause size={18} fill="currentColor" />
-              </button>
+            <div className="mx-auto max-w-3xl">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={alternaPausa}
+                  aria-label={stato === "speaking" ? "Pausa" : "Riprendi"}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-voce-500 text-white shadow-[var(--shadow-voce)] active:scale-95"
+                >
+                  {stato === "speaking" ? (
+                    <Pause size={18} fill="currentColor" />
+                  ) : (
+                    <Play size={18} fill="currentColor" className="ml-0.5" />
+                  )}
+                </button>
 
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[12px] font-semibold">
-                  {lezione.materia}
-                </p>
-                <p className="tnum text-[11px] text-ink-muted">
-                  blocco {bloccoAttivo! + 1}/{capitolo.blocchi.length}
-                </p>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[12px] font-semibold">
+                    {lezione.materia}
+                  </p>
+                  <p className="tnum text-[11px] text-ink-muted">
+                    {inPreparazione ? (
+                      <span>preparazione…</span>
+                    ) : (
+                      <>
+                        blocco {bloccoAttivo! + 1}/{capitolo.blocchi.length}
+                      </>
+                    )}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setAutoplay((v) => !v)}
+                  aria-pressed={autoplay}
+                  title="Riproduzione automatica"
+                  className={cn(
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition",
+                    autoplay
+                      ? "border-brand-400 bg-brand-50 text-brand-700"
+                      : "border-sage-200 text-ink-muted"
+                  )}
+                >
+                  <Repeat size={16} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAutoplay(false);
+                    ferma();
+                    setBloccoAttivo(null);
+                  }}
+                  aria-label="Chiudi il lettore"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-ink-muted transition hover:bg-sage-100"
+                >
+                  <X size={18} />
+                </button>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setAutoplay((v) => !v)}
-                aria-pressed={autoplay}
-                title="Riproduzione automatica"
-                className={cn(
-                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition",
-                  autoplay
-                    ? "border-brand-400 bg-brand-50 text-brand-700"
-                    : "border-sage-200 text-ink-muted"
-                )}
-              >
-                <Repeat size={16} />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setAutoplay(false);
-                  ferma();
-                  setBloccoAttivo(null);
-                }}
-                aria-label="Chiudi il lettore"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-ink-muted transition hover:bg-sage-100"
-              >
-                <X size={18} />
-              </button>
+              {/* Velocità di lettura */}
+              <div className="mt-2 flex items-center gap-2">
+                <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+                  Velocità
+                </span>
+                <div
+                  className="flex flex-1 gap-1"
+                  role="group"
+                  aria-label="Velocità di lettura"
+                >
+                  {VELOCITA.map((v) => {
+                    const attiva =
+                      Math.abs(impostazioni.velocita - v) < 0.01;
+                    return (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => aggiorna({ velocita: v })}
+                        aria-pressed={attiva}
+                        className={cn(
+                          "tnum flex-1 rounded-full py-1.5 text-[12px] font-bold transition",
+                          attiva
+                            ? "bg-voce-500 text-white"
+                            : "bg-voce-50 text-voce-700 hover:bg-voce-100"
+                        )}
+                      >
+                        {v === 1 ? "1×" : `${v}×`}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
@@ -635,4 +716,39 @@ function Riprendi({
       </button>
     </div>
   );
+}
+
+/**
+ * Il capitolo che segue quello indicato, se esiste.
+ * Serve a preriscaldare l'audio del capitolo successivo senza duplicare
+ * la logica di avanzamento.
+ */
+function capitoloDopo(
+  lezioni: Lezione[],
+  lezioneIdx: number,
+  capIdx: number
+): { materia: string; numero: number; blocco: TipoBlocco } | null {
+  const lezione = lezioni[lezioneIdx];
+  if (!lezione) return null;
+
+  const stesso = lezione.capitoli[capIdx + 1];
+  if (stesso) {
+    return {
+      materia: lezione.materia,
+      numero: stesso.numero,
+      blocco: stesso.blocchi[0],
+    };
+  }
+
+  const prossimaLezione = lezioni[lezioneIdx + 1];
+  const primo = prossimaLezione?.capitoli[0];
+  if (prossimaLezione && primo) {
+    return {
+      materia: prossimaLezione.materia,
+      numero: primo.numero,
+      blocco: primo.blocchi[0],
+    };
+  }
+
+  return null;
 }

@@ -124,6 +124,18 @@ export class GestoreVoce {
     return this.attivo.parla(testo, impostazioni, cb);
   }
 
+  /**
+   * Sintetizza in anticipo il prossimo brano.
+   *
+   * Ha senso solo per il motore neurale: la Web Speech API è già istantanea
+   * e non ha nulla da preriscaldare. Se il motore attivo è il dispositivo,
+   * la chiamata non fa nulla.
+   */
+  prefetch(testo: string, impostazioni: ImpostazioniVoce): void {
+    if (this.idAttivo !== "neurale" || !testo.trim()) return;
+    this.neurale.prefetch(testo, impostazioni.voceId ?? VOCE_PIPER_PREDEFINITA);
+  }
+
   ferma(): void {
     this.dispositivo.ferma();
     this.neurale.ferma();

@@ -59,6 +59,11 @@ interface ValoreVoce {
    * Passare `null` per rimuoverlo.
    */
   impostaFineLettura: (cb: (() => void) | null) => void;
+  /**
+   * Sintetizza in anticipo un testo che probabilmente verrà letto a breve
+   * (il blocco o il capitolo successivo). Solo per la voce neurale.
+   */
+  prefetch: (testo: string) => void;
 }
 
 const ContestoVoce = createContext<ValoreVoce | null>(null);
@@ -180,6 +185,17 @@ export function FornitoreVoce({ children }: { children: React.ReactNode }) {
     fineLetturaRef.current = cb;
   }, []);
 
+  // Le impostazioni servono al prefetch: le teniamo in un ref così la
+  // funzione resta stabile e non ricrea i callback a ogni cambio di slider.
+  const impostazioniRef = useRef(impostazioni);
+  useEffect(() => {
+    impostazioniRef.current = impostazioni;
+  }, [impostazioni]);
+
+  const prefetch = useCallback((testo: string) => {
+    gestoreRef.current?.prefetch(testo, impostazioniRef.current);
+  }, []);
+
   const commuta = useCallback(
     (testo: string, tag?: string) => {
       const chiave = tag ?? testo;
@@ -266,6 +282,7 @@ export function FornitoreVoce({ children }: { children: React.ReactNode }) {
       ferma,
       commutaPausa,
       impostaFineLettura,
+      prefetch,
     }),
     [
       motore,
@@ -287,6 +304,7 @@ export function FornitoreVoce({ children }: { children: React.ReactNode }) {
       ferma,
       commutaPausa,
       impostaFineLettura,
+      prefetch,
     ]
   );
 

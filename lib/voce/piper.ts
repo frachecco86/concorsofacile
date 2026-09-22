@@ -56,6 +56,30 @@ export class PiperEngine implements MotoreVoce {
   private urlCorrente: string | null = null;
   /** Handle dell'animazione che segue l'avanzamento della lettura. */
   private rafCorrente: number | null = null;
+  /**
+   * Cache dei blob audio già sintetizzati, indicizzata dal testo.
+   *
+   * Perché è la differenza più grande: Piper sintetizza in WebAssembly e
+   * impiega ~1-3 secondi per un blocco. Senza cache, ogni cambio di blocco
+   * (e ogni riascolto) paga quel tempo. Con la cache il secondo ascolto è
+   * istantaneo e — grazie al prefetch — l'attesa sparisce del tutto.
+   *
+   * Limite volutamente contenuto: i blob sono audio PCM in memoria, quindi
+   * teniamo solo gli ultimi brani usati.
+   */
+  private cache = new Map<string, Blob>();
+  /** Sintesi in corso, per non lanciare due volte lo stesso lavoro. */
+  private inCorso = new Map<string, Promise<Blob>>();
+  /**
+   * Le sintesi vanno eseguite **una alla volta**.
+   *
+   * La sessione ONNX non è rientrante: due `predict` concorrenti sulla stessa
+   * sessione si bloccano a vicenda e nessuno dei due termina. Il prefetch
+   * rende la concorrenza la norma (l'audio del blocco N+1 si prepara mentre
+   * suona N), quindi serializziamo con una coda: i lavori si accodano.
+   */
+  private coda: Promise<unknown> = Promise.resolve();
+  private static readonly MAX_CACHE = 24;
   private interrotto = false;
   private cbCorrente: CallbackSintesi | null = null;
 
@@ -113,11 +137,16 @@ export class PiperEngine implements MotoreVoce {
 
     try {
       const mod = await this.caricaModulo();
+
+      // Se un'altra chiamata ha già creato la sessione nel frattempo,
+      // riusiamo quella invece di ricrearla (evita di scartare lavoro fatto).
+      if (this.sessione && this.voceCaricata === voceId) return;
+
       this.onStato?.({ fase: "scarico", percentuale: 0 });
       this.sessione = null;
       this.voceCaricata = null;
 
-      this.sessione = await mod.TtsSession.create({
+      const sessione = await mod.TtsSession.create({
         voiceId: voceId,
         wasmPaths: this.percorsiWasm(),
         progress: ({ total, loaded }) => {
@@ -126,7 +155,8 @@ export class PiperEngine implements MotoreVoce {
         },
       });
 
-      await this.sessione.waitReady;
+      await sessione.waitReady;
+      this.sessione = sessione;
       this.voceCaricata = voceId;
       this.onStato?.({ fase: "pronto", percentuale: 100 });
     } catch (e) {
@@ -140,6 +170,73 @@ export class PiperEngine implements MotoreVoce {
         messaggio: messaggioErrore(e),
       });
       throw e;
+    }
+  }
+
+  /**
+   * Sintetizza un testo e restituisce il blob.
+   *
+   * Riutilizza la cache se disponibile e deduplica i lavori concorrenti:
+   * se il prefetch sta già sintetizzando questo testo, `parla` aspetta lo
+   * stesso lavoro invece di lanciarne un secondo.
+   */
+  async sintetizza(testo: string, voceId: string): Promise<Blob> {
+    const chiave = `${voceId}\u0000${testo}`;
+
+    const inCache = this.cache.get(chiave);
+    if (inCache) return inCache;
+
+    const giaInCorso = this.inCorso.get(chiave);
+    if (giaInCorso) return giaInCorso;
+
+    const lavoro = this.accoda(async () => {
+      await this.prepara(voceId);
+      const blob = await this.sessione!.predict(testo);
+      this.mettiInCache(chiave, blob);
+      return blob;
+    });
+
+    this.inCorso.set(chiave, lavoro);
+    try {
+      return await lavoro;
+    } finally {
+      this.inCorso.delete(chiave);
+    }
+  }
+
+  /**
+   * Accoda un lavoro sulla catena di sintesi, così non ne girano due insieme.
+   * Un errore non deve spezzare la catena: i lavori successivi proseguono.
+   */
+  private accoda<T>(fn: () => Promise<T>): Promise<T> {
+    const risultato = this.coda.then(fn, fn);
+    this.coda = risultato.catch(() => undefined);
+    return risultato;
+  }
+
+  /**
+   * Avvia la sintesi in anticipo, senza attenderne l'esito.
+   * Chiamato dal lettore sul blocco successivo: quando l'utente ci arriva,
+   * l'audio è già pronto.
+   */
+  prefetch(testo: string, voceId: string): void {
+    if (!testo.trim() || !this.disponibile()) return;
+    const chiave = `${voceId}\u0000${testo}`;
+    if (this.cache.has(chiave) || this.inCorso.has(chiave)) return;
+
+    void this.sintetizza(testo, voceId).catch(() => {
+      // Il prefetch è un'ottimizzazione: se fallisce, `parla` riproverà e
+      // mostrerà l'errore vero all'utente.
+    });
+  }
+
+  private mettiInCache(chiave: string, blob: Blob) {
+    this.cache.set(chiave, blob);
+    // Sfoltisce le voci più vecchie (la Map conserva l'ordine di inserimento).
+    while (this.cache.size > PiperEngine.MAX_CACHE) {
+      const piuVecchia = this.cache.keys().next().value;
+      if (piuVecchia === undefined) break;
+      this.cache.delete(piuVecchia);
     }
   }
 
@@ -160,18 +257,15 @@ export class PiperEngine implements MotoreVoce {
     const voceId = impostazioni.voceId ?? VOCE_PIPER_PREDEFINITA;
 
     try {
-      await this.prepara(voceId);
-      if (this.interrotto) return;
-
+      // `sintetizza` si occupa da sé di preparare il modello: non serve
+      // chiamare `prepara` anche qui (era una doppia chiamata superflua).
       cb?.onInizio?.();
 
       // Piper non espone il boundary per parola: leggiamo l'intero testo e
       // simuliamo l'avanzamento in base al tempo di riproduzione, così
       // l'evidenziazione resta fluida.
-      console.debug("[concorsofacile:voce] predict", { caratteri: testo.length });
-      const blob = await this.sessione!.predict(testo);
+      const blob = await this.sintetizza(testo, voceId);
       if (this.interrotto || !blob) return;
-      console.debug("[concorsofacile:voce] audio pronto", { byte: blob.size, tipo: blob.type });
 
       const url = URL.createObjectURL(blob);
       this.urlCorrente = url;
