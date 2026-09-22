@@ -40,20 +40,124 @@ export interface Lezione {
  * Testo "piatto" di un blocco: è quello che viene letto dalla voce.
  * Funzione pura e condivisa da UI e motore TTS.
  */
+/**
+ * Testo "piatto" di un blocco: è quello che viene letto dalla voce.
+ * Funzione pura e condivisa da UI e motore TTS. Deriva da `componiBlocco`,
+ * così testo letto e testo mostrato non possono divergere.
+ */
 export function testoBlocco(b: TipoBlocco): string {
+  return componiBlocco(b).testo;
+}
+
+/** Ruolo visivo di una parte di blocco (serve al rendering e al karaoke). */
+export type RuoloParte = "titolo" | "termine" | "etichetta" | "testo" | "punto";
+
+export interface ParteBlocco {
+  ruolo: RuoloParte;
+  /** Testo della parte, senza l'eventuale prefisso (es. "• "). */
+  testo: string;
+  /** Indice carattere inclusivo nel testo piatto del blocco. */
+  inizio: number;
+  /** Indice carattere esclusivo. */
+  fine: number;
+}
+
+export interface BloccoScomposto {
+  /** Testo piatto: è quello che legge la voce. */
+  testo: string;
+  parti: ParteBlocco[];
+}
+
+/** Separatore fra le parti nel testo piatto (es. "legalità. La legge…"). */
+const SEPARATORE = ". ";
+
+/**
+ * Scompone un blocco in parti con la loro posizione in caratteri nel testo
+ * piatto. La posizione usa la stessa unità di `onParola` del layer voce
+ * (indice carattere), quindi mappa direttamente su `posizione`.
+ */
+export function componiBlocco(b: TipoBlocco): BloccoScomposto {
+  const grezze: { ruolo: RuoloParte; testo: string; prefisso: string }[] = [];
+
   switch (b.tipo) {
     case "paragrafo":
-      return b.testo;
+      grezze.push({ ruolo: "testo", testo: b.testo, prefisso: "" });
+      break;
     case "punti":
-      return [b.titolo, ...b.voci.map((v) => `• ${v}`)].filter(Boolean).join(". ");
+      if (b.titolo) grezze.push({ ruolo: "titolo", testo: b.titolo, prefisso: "" });
+      for (const v of b.voci) grezze.push({ ruolo: "punto", testo: v, prefisso: "• " });
+      break;
     case "definizione":
-      return `${b.termine}. ${b.testo}`;
+      grezze.push({ ruolo: "termine", testo: b.termine, prefisso: "" });
+      grezze.push({ ruolo: "testo", testo: b.testo, prefisso: "" });
+      break;
     case "nota":
-      return `Nota. ${b.testo}`;
+      grezze.push({ ruolo: "etichetta", testo: "Nota", prefisso: "" });
+      grezze.push({ ruolo: "testo", testo: b.testo, prefisso: "" });
+      break;
     case "esempio":
-      return `Esempio. ${b.testo}`;
+      grezze.push({ ruolo: "etichetta", testo: "Esempio", prefisso: "" });
+      grezze.push({ ruolo: "testo", testo: b.testo, prefisso: "" });
+      break;
   }
+
+  // Le parti vuote non vengono lette e non devono spostare gli offset.
+  const valide = grezze.filter((p) => p.testo.trim().length > 0 || p.prefisso.length > 0);
+
+  let testo = "";
+  const parti: ParteBlocco[] = [];
+  valide.forEach((p, i) => {
+    if (i > 0) testo += SEPARATORE;
+    testo += p.prefisso;
+    const inizio = testo.length;
+    testo += p.testo;
+    parti.push({ ruolo: p.ruolo, testo: p.testo, inizio, fine: testo.length });
+  });
+
+  return { testo, parti };
 }
+
+/** Parole al minuto di riferimento per la lettura ad alta voce. */
+export const PAROLE_AL_MINUTO = 150;
+
+/** Conta le parole di un testo (i separatori sono spazi bianchi). */
+export function conteggioParole(testo: string): number {
+  return testo.split(/\s+/).filter(Boolean).length;
+}
+
+/** Durata stimata in millisecondi alla velocità indicata (1 = normale). */
+export function millisecondiStimati(testo: string, velocita = 1): number {
+  const v = velocita > 0 ? velocita : 1;
+  return (conteggioParole(testo) / (PAROLE_AL_MINUTO * v)) * 60_000;
+}
+
+export interface ParolaTesto {
+  testo: string;
+  inizio: number;
+  fine: number;
+  /** Spazi bianchi che precedono la parola (utili a ricostruire il testo). */
+  separatore: string;
+}
+
+/** Segmenta un testo in parole mantenendo le posizioni in caratteri. */
+export function paroleBlocco(testo: string): ParolaTesto[] {
+  const parole: ParolaTesto[] = [];
+  const re = /\S+/g;
+  let precedenteFine = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(testo)) !== null) {
+    parole.push({
+      testo: m[0],
+      inizio: m.index,
+      fine: m.index + m[0].length,
+      separatore: testo.slice(precedenteFine, m.index),
+    });
+    precedenteFine = m.index + m[0].length;
+  }
+  return parole;
+}
+
+
 
 /** Testo completo di un capitolo: è ciò che legge "Ascolta il capitolo". */
 export function testoCapitolo(c: Capitolo): string {
