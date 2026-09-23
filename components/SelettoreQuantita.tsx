@@ -43,7 +43,7 @@ export function SelettoreQuantita({
           className={cn(
             "tnum rounded-full px-3.5 py-1.5 text-sm font-semibold transition",
             o === quanti
-              ? "bg-brand-500 text-white shadow-[var(--shadow-brand)]"
+              ? "bg-brand-500 text-cream shadow-[var(--shadow-brand)]"
               : "text-ink-muted hover:bg-sage-100 hover:text-ink"
           )}
         >

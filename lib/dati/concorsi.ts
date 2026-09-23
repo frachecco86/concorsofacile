@@ -339,3 +339,62 @@ export function dataIt(iso: string | null): string {
   const d = new Date(`${iso}T12:00:00`);
   return d.toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" });
 }
+
+/**
+ * Categoria di appartenenza dell'ente, per la navigazione del drawer (§1B).
+ *
+ * Le aree del corpus sono 5 e non combaciano con le 3 voci di menu richieste
+ * dalle direttive. Qui deriviamo la categoria dall'ente e dall'area, in modo
+ * che ogni concorso finisca in **una sola** voce e nessuno resti fuori: una
+ * navigazione che perde pezzi è peggio di una imprecisa.
+ */
+export type CategoriaEnte = "nazionali" | "enti-locali" | "sanita-istruzione";
+
+const ENTI_NAZIONALI = /minister|presidenza|funzione pubblica|formez|ripam|agenzia|inps|inail|istat|banca d'italia|corte dei conti|consiglio di stato/i;
+const ENTI_LOCALI = /comune|provincia|regione|asmel|città metropolitana|unione dei comuni/i;
+
+export function categoriaEnte(c: Concorso): CategoriaEnte {
+  if (c.area === "Sanità") return "sanita-istruzione";
+  if (c.area === "Enti locali") return "enti-locali";
+  if (ENTI_LOCALI.test(c.ente)) return "enti-locali";
+  if (ENTI_NAZIONALI.test(c.ente) || c.area === "Amministrativo") return "nazionali";
+  // Resto (tecnico, economico-finanziario): è quasi sempre amministrazione
+  // centrale o di vigilanza, quindi la voce nazionale è la più utile.
+  return "nazionali";
+}
+
+/**
+ * Ordine di lettura dell'elenco: prima ciò che è ancora utile.
+ *
+ * Un concorso scaduto non sparisce — resta consultabile — ma non deve rubare
+ * l'attenzione a chi ha ancora tempo per presentare domanda. A parità di
+ * stato, vince la scadenza più vicina.
+ */
+export function ordinaConcorsi(concorsi: Concorso[] = CONCORSI): Concorso[] {
+  return [...concorsi].sort((a, b) => {
+    const ga = giorniAllaScadenza(a.scadenza);
+    const gb = giorniAllaScadenza(b.scadenza);
+    const scadutoA = ga !== null && ga < 0;
+    const scadutoB = gb !== null && gb < 0;
+    if (scadutoA !== scadutoB) return scadutoA ? 1 : -1;
+    return (ga ?? 9999) - (gb ?? 9999);
+  });
+}
+
+/** Quanti concorsi non sono ancora scaduti. */
+export function quantiAperti(concorsi: Concorso[] = CONCORSI): number {
+  return concorsi.filter((c) => {
+    const g = giorniAllaScadenza(c.scadenza);
+    return g === null || g >= 0;
+  }).length;
+}
+
+/** I concorsi da mettere in vetrina nel carosello: i più imminenti e capienti. */
+export function concorsiInEvidenza(quanti = 6, concorsi: Concorso[] = CONCORSI): Concorso[] {
+  return ordinaConcorsi(concorsi)
+    .filter((c) => {
+      const g = giorniAllaScadenza(c.scadenza);
+      return g === null || g >= 0;
+    })
+    .slice(0, quanti);
+}

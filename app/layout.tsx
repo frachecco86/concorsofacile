@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import { FornitoreVoce } from "@/lib/voce/hook";
-import { Testata } from "@/components/Testata";
+import { Guscio } from "@/components/Guscio";
+import { leggiMaterie } from "@/lib/dati/server";
+import { SCRIPT_TEMA } from "@/lib/tema";
 import "./globals.css";
 
 /**
@@ -34,23 +36,48 @@ export const metadata: Metadata = {
   description:
     "App di apprendimento con contesto e voce: migliaia di quiz letti ad alta voce, sessione dopo sessione.",
   applicationName: "ConcorsoFacile",
+  appleWebApp: {
+    capable: true,
+    title: "ConcorsoFacile",
+    statusBarStyle: "default",
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#F7FAF8",
+  // Il colore è aggiornato da `lib/tema.ts` quando si passa alla modalità notte.
+  themeColor: "#f7faf8",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
+  // Su mobile il layout deve arrivare fino ai bordi: le safe area le gestiamo
+  // noi con `env(safe-area-inset-*)`, così header e bottom bar non galleggiano.
+  viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // L'indice delle materie serve alla ricerca rapida della top bar. È un file
+  // statico rigenerato a ogni build: nessun costo per richiesta.
+  const materie = await leggiMaterie();
+
   return (
-    <html lang="it" className={`${fraunces.variable} ${jakarta.variable}`}>
+    <html
+      lang="it"
+      className={`${fraunces.variable} ${jakarta.variable}`}
+      suppressHydrationWarning
+    >
       <body className="min-h-dvh antialiased">
+        {/*
+          Il tema va applicato *prima* del primo paint, altrimenti la pagina
+          nasce chiara e passa allo scuro solo dopo l'idratazione: un lampo
+          bianco, fastidiosissimo di notte. Lo script è inline e non dipende
+          da nulla, quindi non ritarda il rendering.
+        */}
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
+
         {/*
           Le variabili --font-fraunces / --font-jakarta sono iniettate da
           next/font. Le rimappiamo sui token del design system così che
@@ -62,9 +89,9 @@ export default function RootLayout({
             --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
           }
         `}</style>
+
         <FornitoreVoce>
-          <Testata />
-          {children}
+          <Guscio materie={materie}>{children}</Guscio>
         </FornitoreVoce>
       </body>
     </html>

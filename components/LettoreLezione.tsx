@@ -33,6 +33,7 @@ import { useVoceSilenziosa } from "@/lib/voce/silenzio";
 import { useStudio } from "@/lib/dati/studio";
 import { useModalitaLettore, segnaVoceUsata } from "@/lib/lettore/modalita";
 import { ScenaBlocco } from "./ScenaBlocco";
+import { slug } from "./slug";
 import { cn, durata } from "@/lib/ui";
 
 /** Velocità selezionabili nel dock di ascolto. */
@@ -403,6 +404,46 @@ export function LettoreLezione({
     [capitolo, bloccoAttivo, impostazioni.velocita]
   );
 
+  /**
+   * Ancora iniziale: `/concorso/<id>/#cap-<materia>-<numero>` apre
+   * direttamente quella lezione.
+   *
+   * Serve ai link della scheda concorso e della pagina «Ascolta»: senza
+   * questo, qualunque link atterrava sempre sul primo capitolo della prima
+   * materia, e le ancore generate da `TendinaMaterie` non puntavano a nulla.
+   */
+  useEffect(() => {
+    const applica = () => {
+      const hash = decodeURIComponent(window.location.hash.replace(/^#/, ""));
+      if (!hash.startsWith("cap-")) return;
+
+      for (let li = 0; li < lezioni.length; li++) {
+        const base = `cap-${slug(lezioni[li].materia)}`;
+        if (hash !== base && !hash.startsWith(`${base}-`)) continue;
+
+        const numero =
+          hash === base
+            ? lezioni[li].capitoli[0]?.numero
+            : Number(hash.slice(base.length + 1));
+        const ci = lezioni[li].capitoli.findIndex((c) => c.numero === numero);
+        if (ci < 0) continue;
+
+        setLezioneIdx(li);
+        setCapIdx(ci);
+        window.setTimeout(() => {
+          document
+            .getElementById(hash)
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 120);
+        return;
+      }
+    };
+
+    applica();
+    window.addEventListener("hashchange", applica);
+    return () => window.removeEventListener("hashchange", applica);
+  }, [lezioni]);
+
   if (lezioni.length === 0) {
     return (
       <p className="rounded-xl border border-dashed border-sage-300 bg-sage-50 p-4 text-sm text-ink-soft">
@@ -420,8 +461,24 @@ export function LettoreLezione({
 
   return (
     <div className={cn(inAscolto ? "flex min-h-[70dvh] flex-col" : "pb-24")}>
+      {/*
+        Ancore dei link profondi. Sono elementi vuoti, non titoli: servono solo
+        come bersaglio di `scrollIntoView` e per l'URL condivisibile. La
+        posizione è compensata dall'altezza della barra fissa.
+      */}
+      <span
+        id={`cap-${slug(lezione.materia)}`}
+        aria-hidden="true"
+        className="block h-0 scroll-mt-[calc(var(--safe-alto)+var(--h-testata)+72px)]"
+      />
+      <span
+        id={`cap-${slug(lezione.materia)}-${capitolo.numero}`}
+        aria-hidden="true"
+        className="block h-0 scroll-mt-[calc(var(--safe-alto)+var(--h-testata)+72px)]"
+      />
+
       {/* ══════════ BARRA PLAYER (sticky) ══════════ */}
-      <div className="sticky top-14 z-30 -mx-4 border-b border-sage-200 bg-cream/95 px-3 py-2 backdrop-blur-lg sm:-mx-6 sm:top-16 sm:px-6">
+      <div className="sticky top-[calc(var(--safe-alto)+var(--h-testata))] z-30 -mx-4 border-b border-sage-200 bg-cream/95 px-3 py-2 backdrop-blur-lg sm:-mx-6 sm:px-6">
         <div className="flex items-center gap-2.5">
           {inAscolto && (
             <button
@@ -430,7 +487,7 @@ export function LettoreLezione({
               aria-label={inRiproduzione ? "Pausa" : "Riproduci"}
               className={cn(
                 "flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition active:scale-95",
-                "bg-voce-500 text-white shadow-[var(--shadow-voce)]"
+                "bg-voce-500 text-cream shadow-[var(--shadow-voce)]"
               )}
             >
               {inPreparazione ? (
@@ -634,7 +691,7 @@ export function LettoreLezione({
                   type="button"
                   onClick={alternaPausa}
                   aria-label={inRiproduzione ? "Pausa" : "Riproduci"}
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-voce-500 text-white shadow-[var(--shadow-voce)] active:scale-95"
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-voce-500 text-cream shadow-[var(--shadow-voce)] active:scale-95"
                 >
                   {inPreparazione ? (
                     <Loader2 size={19} className="animate-spin" />
@@ -727,7 +784,7 @@ export function LettoreLezione({
                         aria-pressed={attiva}
                         className={cn(
                           "tnum flex-1 rounded-full py-1.5 text-[12px] font-bold transition",
-                          attiva ? "bg-voce-500 text-white" : "bg-voce-50 text-voce-700 hover:bg-voce-100"
+                          attiva ? "bg-voce-500 text-cream" : "bg-voce-50 text-voce-700 hover:bg-voce-100"
                         )}
                       >
                         {v === 1 ? "1×" : `${v}×`}
@@ -874,7 +931,7 @@ function Blocco({
           className={cn(
             "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition active:scale-95 disabled:opacity-40",
             attivo
-              ? "bg-voce-500 text-white"
+              ? "bg-voce-500 text-cream"
               : "bg-sage-100 text-ink-muted hover:bg-brand-100 hover:text-brand-700"
           )}
         >
@@ -1058,7 +1115,7 @@ function AvvioCapitolo({
       <button
         type="button"
         onClick={onAvvia}
-        className="flex items-center gap-2 rounded-full bg-voce-500 px-5 py-2.5 text-[13px] font-bold text-white shadow-[var(--shadow-voce)] active:scale-95"
+        className="flex items-center gap-2 rounded-full bg-voce-500 px-5 py-2.5 text-[13px] font-bold text-cream shadow-[var(--shadow-voce)] active:scale-95"
       >
         <Play size={16} fill="currentColor" />
         {usaSilenzio ? "Inizia la lettura" : "Inizia l'ascolto"}

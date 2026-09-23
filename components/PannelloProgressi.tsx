@@ -47,7 +47,7 @@ export function PannelloProgressi({ materie }: { materie: MateriaIndice[] }) {
         </p>
         <Link
           href="/materie/"
-          className="mt-6 inline-flex items-center gap-2 rounded-full bg-brand-500 px-6 py-3 text-sm font-bold text-white shadow-[var(--shadow-brand)] transition hover:bg-brand-600"
+          className="mt-6 inline-flex items-center gap-2 rounded-full bg-brand-500 px-6 py-3 text-sm font-bold text-cream shadow-[var(--shadow-brand)] transition hover:bg-brand-600"
         >
           Scegli una materia
           <ArrowRight size={16} />
@@ -150,7 +150,7 @@ export function PannelloProgressi({ materie }: { materie: MateriaIndice[] }) {
                   azzera();
                   setConfermaAzzera(false);
                 }}
-                className="inline-flex items-center gap-2 rounded-full bg-rose-500 px-5 py-2.5 text-sm font-bold text-white transition hover:opacity-90"
+                className="inline-flex items-center gap-2 rounded-full bg-rose-500 px-5 py-2.5 text-sm font-bold text-cream transition hover:opacity-90"
               >
                 <Trash2 size={15} />
                 Confermo

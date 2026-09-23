@@ -49,7 +49,7 @@ export function PulsanteVoce({
         "group relative inline-flex shrink-0 items-center justify-center rounded-full border transition-all duration-200",
         dimensione === "lg" && "font-medium",
         attivo
-          ? "border-voce-500 bg-voce-500 text-white shadow-[var(--shadow-voce)]"
+          ? "border-voce-500 bg-voce-500 text-cream shadow-[var(--shadow-voce)]"
           : "border-voce-200 bg-voce-50 text-voce-600 hover:border-voce-300 hover:bg-voce-100 hover:shadow-[var(--shadow-soft)] active:scale-95",
         misure,
         className

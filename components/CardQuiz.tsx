@@ -220,7 +220,7 @@ export function CardQuiz({
                 <button
                   type="button"
                   onClick={rivela}
-                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-brand-500 px-6 py-3.5 text-sm font-bold text-white shadow-[var(--shadow-brand)] transition hover:bg-brand-600 active:scale-[0.98] sm:flex-none"
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-brand-500 px-6 py-3.5 text-sm font-bold text-cream shadow-[var(--shadow-brand)] transition hover:bg-brand-600 active:scale-[0.98] sm:flex-none"
                 >
                   <Eye size={18} strokeWidth={2.4} />
                   Mostra la risposta
@@ -258,7 +258,7 @@ export function CardQuiz({
                 <button
                   type="button"
                   onClick={() => rispondi(true)}
-                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-leaf-500 px-5 py-3 text-sm font-bold text-white shadow-[0_8px_24px_rgba(47,158,68,0.26)] transition hover:bg-leaf-600 active:scale-[0.98]"
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-leaf-500 px-5 py-3 text-sm font-bold text-cream shadow-[0_8px_24px_rgba(47,158,68,0.26)] transition hover:bg-leaf-600 active:scale-[0.98]"
                 >
                   <Check size={17} strokeWidth={2.8} />
                   La sapevo

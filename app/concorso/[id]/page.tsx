@@ -45,8 +45,8 @@ export default async function PaginaConcorso({
   );
 
   return (
-    <main className="mx-auto max-w-3xl px-4 pb-20 pt-2 sm:px-6 sm:pt-4">
-      <div className="flex items-baseline gap-2">
+    <main className="mx-auto max-w-3xl px-4 pt-3 sm:px-6 sm:pt-5">
+      <div className="flex items-baseline gap-2 pb-1">
         <Link
           href="/"
           className="inline-flex shrink-0 items-center gap-1 text-[12px] font-semibold text-ink-muted transition hover:text-brand-600"

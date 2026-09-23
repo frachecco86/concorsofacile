@@ -68,6 +68,92 @@
   --shadow-lift: 0 2px 4px rgba(20, 60, 50, 0.06), 0 12px 28px rgba(20, 60, 50, 0.1);
   --shadow-brand: 0 8px 24px rgba(14, 124, 102, 0.24);
   --shadow-voce: 0 8px 24px rgba(18, 121, 107, 0.24);
+
+  /* --- Geometria del guscio mobile (direttive UX/UI mobile-first) --- */
+  /* Top bar fissa a 56px; bottom nav 64px + safe area del dispositivo. */
+  --h-testata: 56px;
+  --h-barra-basso: 64px;
+  --safe-basso: env(safe-area-inset-bottom, 0px);
+  --safe-alto: env(safe-area-inset-top, 0px);
+  --safe-lato: env(safe-area-inset-left, 0px);
+  --safe-lato-destro: env(safe-area-inset-right, 0px);
+  /* Area minima di tap: standard Apple/Google. */
+  --tap: 44px;
+}
+
+/* ==========================================================================
+   Modalità notte
+   --------------------------------------------------------------------------
+   Non riscriviamo le classi: ridefiniamo i *token*. Poiché le utility di
+   Tailwind v4 compilano in `var(--color-*)`, ogni `bg-cream`, `text-ink`,
+   `border-sage-200` già presente nell'app si adatta da sola. Un solo blocco
+   da mantenere, nessuna duplicazione di stili.
+   ========================================================================== */
+
+[data-tema="scuro"] {
+  color-scheme: dark;
+
+  /* Superfici OLED profonde */
+  --color-cream: #0f0f11;
+  --color-surface: #17181b;
+  --color-sage-50: #17181b;
+  --color-sage-100: #1e2024;
+  --color-sage-200: #2a2d33;
+  --color-sage-300: #3b3f47;
+  --color-sage-400: #585d68;
+
+  /* Inchiostro chiaro */
+  --color-ink: #f3f5f4;
+  --color-ink-soft: #c7cdca;
+  --color-ink-muted: #8d9491;
+
+  /* Accento: verde più luminoso, ma abbastanza profondo da reggere
+     testo scuro (`text-cream`) e bianco (`text-white`) sopra. */
+  --color-brand-50: #0d2723;
+  --color-brand-100: #103129;
+  --color-brand-200: #144238;
+  --color-brand-300: #1a5b4b;
+  --color-brand-400: #16876f;
+  --color-brand-500: #14a189;
+  --color-brand-600: #17b598;
+  --color-brand-700: #3cc9ac;
+  --color-brand-800: #63d7bf;
+
+  /* Voce: stessa logica, tinta più acqua */
+  --color-voce-50: #0c2624;
+  --color-voce-100: #103130;
+  --color-voce-200: #14423f;
+  --color-voce-300: #18564f;
+  --color-voce-400: #158577;
+  --color-voce-500: #12a294;
+  --color-voce-600: #17b7a7;
+  --color-voce-700: #45cbba;
+
+  /* Accenti semantici: sfondi spenti, testo acceso */
+  --color-lilac-100: #1d1b30;
+  --color-lilac-500: #9d8cf0;
+  --color-lilac-600: #b3a4f5;
+  --color-leaf-100: #10281a;
+  --color-leaf-500: #4ec46a;
+  --color-leaf-600: #6fd787;
+  --color-rose-100: #33181a;
+  --color-rose-500: #f26b6b;
+  --color-sun-100: #2c2310;
+  --color-sun-500: #f0b53a;
+  --color-sun-600: #f6c95d;
+
+  /* Ombre: su fondo nero servono più profonde e meno verdi */
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.55), 0 12px 28px rgba(0, 0, 0, 0.5);
+  --shadow-brand: 0 8px 24px rgba(20, 161, 137, 0.3);
+  --shadow-voce: 0 8px 24px rgba(18, 162, 148, 0.3);
+}
+
+/* Passaggio di tema senza lampo: transizione breve su sfondo e testo. */
+@media (prefers-reduced-motion: no-preference) {
+  body {
+    transition: background-color 0.18s ease, color 0.18s ease;
+  }
 }
 
 /* ==========================================================================
@@ -116,6 +202,46 @@ h3 {
 }
 
 /* ==========================================================================
+   Guscio mobile: area di tap, safe area, caroselli
+   ========================================================================== */
+
+/* Nessun bersaglio toccabile sotto lo standard Apple/Google (44px). */
+.tap {
+  min-height: var(--tap);
+  min-width: var(--tap);
+}
+.tap-alto {
+  min-height: 48px;
+}
+
+/* Spazio per la bottom navigation, sopra la safe area del dispositivo. */
+.pb-barra-basso {
+  padding-bottom: calc(var(--h-barra-basso) + var(--safe-basso) + 1.5rem);
+}
+
+/* La top bar scivola sotto il notch dell'iPhone. */
+.pt-safe {
+  padding-top: var(--safe-alto);
+}
+.pb-safe {
+  padding-bottom: var(--safe-basso);
+}
+.px-safe {
+  padding-left: var(--safe-lato);
+  padding-right: var(--safe-lato-destro);
+}
+
+/* Carosello orizzontale: scorrimento a scatto, barra nascosta. */
+.carosello {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overscroll-behavior-x: contain;
+}
+.carosello::-webkit-scrollbar {
+  display: none;
+}
+
+/* ==========================================================================
    Grana di carta: dà calore senza pesare sul rendering
    ========================================================================== */
 
@@ -129,6 +255,10 @@ h3 {
   pointer-events: none;
   opacity: 0.035;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+/* Su fondo nero la grana si spegne: rilucerebbe solo rumore. */
+[data-tema="scuro"] .paper-grain::before {
+  opacity: 0;
 }
 
 /* ==========================================================================

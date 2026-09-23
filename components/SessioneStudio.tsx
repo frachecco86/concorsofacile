@@ -256,7 +256,7 @@ function Ripristino({
         <button
           type="button"
           onClick={onRiprendi}
-          className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-6 py-3 text-sm font-bold text-white shadow-[var(--shadow-brand)] transition hover:bg-brand-600 active:scale-[0.98]"
+          className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-6 py-3 text-sm font-bold text-cream shadow-[var(--shadow-brand)] transition hover:bg-brand-600 active:scale-[0.98]"
         >
           Riprendi
           <ArrowRight size={16} />
@@ -355,7 +355,7 @@ function Esito({
           <button
             type="button"
             onClick={onRicomincia}
-            className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-6 py-3 text-sm font-bold text-white shadow-[var(--shadow-brand)] transition hover:bg-brand-600 active:scale-[0.98]"
+            className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-6 py-3 text-sm font-bold text-cream shadow-[var(--shadow-brand)] transition hover:bg-brand-600 active:scale-[0.98]"
           >
             <RotateCcw size={16} />
             Nuova sessione

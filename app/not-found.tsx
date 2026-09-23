@@ -16,7 +16,7 @@ export default function NonTrovato() {
       </p>
       <Link
         href="/materie/"
-        className="mt-7 inline-flex items-center gap-2 rounded-full bg-brand-500 px-6 py-3 text-sm font-bold text-white shadow-[var(--shadow-brand)] transition hover:bg-brand-600"
+        className="mt-7 inline-flex items-center gap-2 rounded-full bg-brand-500 px-6 py-3 text-sm font-bold text-cream shadow-[var(--shadow-brand)] transition hover:bg-brand-600"
       >
         Vai alle materie
       </Link>

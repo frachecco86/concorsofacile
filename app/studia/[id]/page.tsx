@@ -42,14 +42,14 @@ export default async function PaginaStudia({
   if (!materia) notFound();
 
   return (
-    <main className="mx-auto max-w-3xl px-4 pb-24 pt-8 sm:px-6 sm:pt-12">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+    <main className="mx-auto max-w-3xl px-4 pt-6 sm:px-6 sm:pt-10">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
         <Link
-          href="/materie/"
+          href="/quiz/"
           className="inline-flex items-center gap-2 text-sm font-semibold text-ink-muted transition hover:text-brand-600"
         >
           <ArrowLeft size={16} />
-          Materie
+          Quiz
         </Link>
       </div>
 

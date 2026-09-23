@@ -100,7 +100,7 @@ function RigaRilascio({
         <span
           className={cn(
             "tnum inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold",
-            corrente ? "bg-brand-500 text-white" : "bg-sage-100 text-ink-soft"
+            corrente ? "bg-brand-500 text-cream" : "bg-sage-100 text-ink-soft"
           )}
         >
           {corrente && <Sparkles size={12} />}v{rilascio.versione}
