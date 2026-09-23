@@ -73,6 +73,8 @@
   /* Top bar fissa a 56px; bottom nav 64px + safe area del dispositivo. */
   --h-testata: 56px;
   --h-barra-basso: 64px;
+  /* Barra audio flottante: due righe, comandi + velocità (§3C). */
+  --h-barra-audio: 96px;
   --safe-basso: env(safe-area-inset-bottom, 0px);
   --safe-alto: env(safe-area-inset-top, 0px);
   --safe-lato: env(safe-area-inset-left, 0px);
@@ -217,6 +219,18 @@ h3 {
 /* Spazio per la bottom navigation, sopra la safe area del dispositivo. */
 .pb-barra-basso {
   padding-bottom: calc(var(--h-barra-basso) + var(--safe-basso) + 1.5rem);
+}
+
+/*
+  Barra audio flottante (§3C): quando c'è una lettura aperta, `data-audio`
+  finisce sull'<html>. Lo spazio in fondo alle pagine lo decide il CSS, così
+  il contenuto non resta sotto il player e nessun componente deve sapere se
+  la barra c'è.
+*/
+html[data-audio] .pb-barra-basso {
+  padding-bottom: calc(
+    var(--h-barra-basso) + var(--safe-basso) + var(--h-barra-audio) + 1rem
+  );
 }
 
 /* La top bar scivola sotto il notch dell'iPhone. */

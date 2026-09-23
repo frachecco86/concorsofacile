@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Headphones, Play } from "lucide-react";
 import { CONCORSI } from "@/lib/dati/concorsi";
 import { useStudio } from "@/lib/dati/studio";
-import { slug } from "./slug";
+import { slug } from "@/lib/slug";
 
 /**
  * Ripresa dell'ascolto (§1C, voce «Ascolta»).

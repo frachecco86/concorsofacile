@@ -3,7 +3,7 @@
 import { BookOpen, ChevronDown, Headphones } from "lucide-react";
 import { type Concorso } from "@/lib/dati/concorsi";
 import { trovaLezione } from "@/lib/dati/lezioni";
-import { slug } from "./slug";
+import { slug } from "@/lib/slug";
 
 /**
  * Menù a tendina delle materie di un concorso.

@@ -5,7 +5,7 @@ import { CONCORSI } from "@/lib/dati/concorsi";
 import { lezioniDelConcorso } from "@/lib/dati/lezioni";
 import { RiprendiAscolto } from "@/components/RiprendiAscolto";
 import { ElencoConcorsi } from "@/components/ElencoConcorsi";
-import { slug } from "@/components/slug";
+import { slug } from "@/lib/slug";
 
 export const metadata: Metadata = {
   title: "Ascolta",

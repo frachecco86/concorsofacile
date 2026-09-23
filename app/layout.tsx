@@ -1,7 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import { FornitoreVoce } from "@/lib/voce/hook";
+import { FornitoreSessioneAudio } from "@/lib/audio/sessione";
 import { Guscio } from "@/components/Guscio";
+import { BarraAudio } from "@/components/BarraAudio";
+import { PlayerAudio } from "@/components/PlayerAudio";
 import { leggiMaterie } from "@/lib/dati/server";
 import { SCRIPT_TEMA } from "@/lib/tema";
 import "./globals.css";
@@ -91,7 +94,17 @@ export default async function RootLayout({
         `}</style>
 
         <FornitoreVoce>
-          <Guscio materie={materie}>{children}</Guscio>
+          {/*
+            La sessione audio sta *sopra* il guscio e vive quanto l'app: il
+            motore di lettura non appartiene alla pagina della lezione, quindi
+            l'ascolto non si spegne navigando (direttive §3B/§3C).
+          */}
+          <FornitoreSessioneAudio>
+            <Guscio materie={materie}>{children}</Guscio>
+            {/* Barra flottante e player a schermo intero: sopra ogni pagina. */}
+            <BarraAudio />
+            <PlayerAudio />
+          </FornitoreSessioneAudio>
         </FornitoreVoce>
       </body>
     </html>
