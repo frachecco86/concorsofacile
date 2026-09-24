@@ -7,7 +7,6 @@ import { motion } from "motion/react";
 import {
   BookOpen,
   Building2,
-  ClipboardList,
   CreditCard,
   Headphones,
   Landmark,
@@ -15,6 +14,7 @@ import {
   Lightbulb,
   LineChart,
   Moon,
+  Sparkles,
   Stethoscope,
   Sun,
   UserRound,
@@ -46,7 +46,6 @@ const PRINCIPALI: Voce[] = [
 /** Scorciatoie: quello che si usa ogni giorno. */
 const SCORCIATOIE: Voce[] = [
   { href: "/materie/", etichetta: "Materie", icona: BookOpen },
-  { href: "/quiz/", etichetta: "Quiz", icona: ClipboardList },
   { href: "/ascolta/", etichetta: "Ascolta", icona: Headphones },
   { href: "/progressi/", etichetta: "Progressi", icona: LineChart },
 ];
@@ -251,7 +250,7 @@ export function Drawer({
             }}
             className="tap-alto flex w-full items-center gap-3 rounded-xl px-2 text-sm font-medium text-ink-soft transition hover:bg-sage-100 hover:text-ink"
           >
-            <ClipboardList size={18} className="shrink-0" />
+            <Sparkles size={18} className="shrink-0" />
             <span className="flex-1 text-left">Novità della versione</span>
             <span className="tnum rounded-full bg-sage-100 px-2 py-0.5 text-[11px] font-bold text-ink-muted">
               v{VERSIONE}

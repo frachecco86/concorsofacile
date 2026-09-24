@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ClipboardList, Headphones, Home, BookOpen } from "lucide-react";
+import { Headphones, Home, BookOpen } from "lucide-react";
 import { cn } from "@/lib/ui";
 
 /**
  * Bottom navigation fissa (§1C).
  *
- * Quattro voci, non una di più: su un telefono la barra sta nella zona del
+ * Tre voci, non una di più: su un telefono la barra sta nella zona del
  * pollice e ogni voce in più la rende più stretta e più facile da sbagliare.
  * L'altezza minima del bersaglio è 44px su tutta la cella, quindi si tocca
  * anche camminando.
@@ -29,7 +29,6 @@ export const VOCI_BARRA: VoceBarra[] = [
   { href: "/", etichetta: "Home", icona: Home, esatto: true },
   { href: "/materie/", etichetta: "Materie", icona: BookOpen },
   { href: "/ascolta/", etichetta: "Ascolta", icona: Headphones },
-  { href: "/quiz/", etichetta: "Quiz", icona: ClipboardList },
 ];
 
 export function BarraInferiore() {

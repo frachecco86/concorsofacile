@@ -27,7 +27,7 @@ export function CaroselloConcorsi() {
           In evidenza
         </h2>
         <Link
-          href="/quiz/"
+          href="#concorsi"
           className="shrink-0 text-[12.5px] font-semibold text-brand-600 transition hover:text-brand-700"
         >
           Vedi tutti

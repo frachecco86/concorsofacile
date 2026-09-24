@@ -34,7 +34,6 @@ const SEZIONI: Array<{
     titolo: "Risorse & Banche dati",
     voci: [
       { etichetta: "Materie e schemi", href: "/materie/" },
-      { etichetta: "Batterie di quiz", href: "/quiz/" },
       { etichetta: "Ascolta le lezioni", href: "/ascolta/" },
       { etichetta: "I tuoi progressi", href: "/progressi/" },
     ],

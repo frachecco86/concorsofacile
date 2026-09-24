@@ -141,12 +141,6 @@ export default function Home() {
           </ol>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
-              href="/quiz/"
-              className="tap-alto inline-flex items-center justify-center gap-2 rounded-full bg-ink px-5 text-sm font-bold text-cream transition hover:opacity-90 active:scale-[0.98]"
-            >
-              Prova un quiz
-            </Link>
-            <Link
               href="/ascolta/"
               className="tap-alto inline-flex items-center justify-center gap-2 rounded-full border border-sage-200 bg-surface px-5 text-sm font-bold text-ink-soft transition hover:border-brand-300 hover:text-brand-700 active:scale-[0.98]"
             >
