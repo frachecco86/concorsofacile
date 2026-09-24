@@ -55,6 +55,44 @@ neurale e lo comunica all'utente.
 Aggiungere un terzo motore (es. Kokoro-82M) significa implementare
 `MotoreVoce` e registrarlo: nessuna modifica all'interfaccia.
 
+### La voce registrata (lezioni)
+
+La sintesi nel browser ha un difetto che non si può nascondere: Piper impiega
+1–3 secondi per un blocco e non può partire prima di averlo finito. Per le
+lezioni — dove il testo è noto in anticipo — l'audio si registra **una volta in
+fase di build** e si serve come file:
+
+```bash
+pnpm voce:registra                 # la lezione pilota (un capitolo)
+pnpm voce:registra -- --tutto      # tutte le lezioni
+pnpm voce:registra -- --materia "Diritto amministrativo" --capitolo 2
+```
+
+Come funziona:
+
+- il testo di ogni blocco viene diviso in **frasi** (`lib/frasi.ts`), la stessa
+  divisione che usa l'app per leggere;
+- ogni frase si sintetizza a parte — ma **in un solo processo** Piper, perché il
+  caricamento del modello costa più della sintesi: una frase per riga di
+  `--json-input`, una sola inferenza per modello caricato;
+- la durata di ogni frase è quindi **nota**, non stimata: è ciò che rende
+  esatta l'evidenziazione per frase;
+- i file finiscono in `public/voce-registrata/` (un MP3 per blocco, ~8 KB al
+  secondo) e il catalogo in `lib/voce/registrazioni.json`, entrambi versionati;
+- la voce usata è in `lib/voce/voce-registrata.ts` — un solo posto, perché l'id
+  fa parte della chiave: script e app **devono** usare lo stesso;
+- la chiave è l'impronta del testo **letto**: se il testo cambia, la chiave
+  cambia e la registrazione vecchia non viene più servita — quel blocco ricade
+  sulla voce dal vivo, senza audio fuori sincrono;
+- rieseguire lo script **aggiunge** le registrazioni mancanti, non rifà il
+  catalogo da capo;
+- il binario Piper, il modello (~89 MB) e l'encoder MP3 restano in
+  `~/.cache/concorsofacile-voce/`, fuori dal progetto.
+
+In riproduzione la scelta è per testo: le lezioni registrate partono
+all'istante e funzionano offline, tutto il resto (quiz, anteprime, testi nuovi)
+resta alla voce dal vivo.
+
 ### I dati
 
 `extract.mjs` legge i doc-definition pdfMake. Tre cose non ovvie, già risolte:

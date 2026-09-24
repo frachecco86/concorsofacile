@@ -16,6 +16,7 @@
     "estrai:all": "node scripts/extract.mjs --all",
     "estrai:lista": "node scripts/extract.mjs --list",
     "voce:aggiorna": "node scripts/aggiorna-voce.mjs",
+    "voce:registra": "node scripts/registra-voce.mjs",
     "versione": "node scripts/versione.mjs"
   },
   "dependencies": {

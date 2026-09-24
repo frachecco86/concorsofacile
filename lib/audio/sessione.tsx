@@ -22,6 +22,11 @@ import { useStudio } from "@/lib/dati/studio";
 import { useModalitaLettore, segnaVoceUsata } from "@/lib/lettore/modalita";
 import { useVoce } from "@/lib/voce/hook";
 import { useVoceSilenziosa } from "@/lib/voce/silenzio";
+import {
+  lettoreRegistrazioni,
+  precaricaRegistrazioni,
+  registrazionePer,
+} from "@/lib/voce/registrate";
 import { slug } from "@/lib/slug";
 import { useMediaSession, useSchermoAcceso, type AzioniSistema } from "./mediasession";
 
@@ -471,13 +476,29 @@ export function FornitoreSessioneAudio({ children }: { children: React.ReactNode
   }, [impostazioni.velocita]);
 
   /**
-   * Tap su una parola: riparte da lì. Supportato dalla voce nativa
-   * (`WebSpeech`) e dal timer; con la voce neurale riparte dall'inizio.
+   * Tap su una parola o su una frase: si riparte da lì. Supportato dalla voce
+   * nativa (`WebSpeech`) e dal timer; con la voce neurale riparte dall'inizio.
    */
   const riprendiDaParola = useCallback(
     (offset: number) => {
       if (!capitolo || bloccoRef.current === null) return;
       const testo = testoBlocco(capitolo.blocchi[bloccoRef.current]);
+
+      /*
+        Blocco registrato: si torna all'inizio della frase toccata dentro il
+        file — l'audio di una registrazione non si può rigenerare a metà frase,
+        quindi la granularità è la frase (la stessa dell'evidenziazione).
+        Solo per il blocco che sta suonando: altrimenti vale il percorso normale.
+      */
+      const reg = registrazionePer(testo);
+      if (reg && lettoreRegistrazioni.attivo()) {
+        const i = reg.frasi.findIndex((f) => offset >= f.inizio && offset < f.fine);
+        if (i >= 0) {
+          lettoreRegistrazioni.riprendiDaFrase(i);
+          return;
+        }
+      }
+
       // Il testo viene letto a partire da qui: il karaoke deve sommare
       // l'offset, altrimenti evidenzierebbe le prime parole del blocco.
       setOffsetKaraoke(offset);
@@ -559,6 +580,16 @@ export function FornitoreSessioneAudio({ children }: { children: React.ReactNode
     () => (capitolo && bloccoAttivo !== null ? testoBlocco(capitolo.blocchi[bloccoAttivo]) : ""),
     [capitolo, bloccoAttivo]
   );
+
+  /**
+   * Il capitolo appena aperto si porta dietro il suo audio registrato: poche
+   * centinaia di kilobyte che tolgono di mezzo anche l'attesa della rete. Senza,
+   * il primo play aspetterebbe il download del file.
+   */
+  useEffect(() => {
+    if (!capitolo) return;
+    precaricaRegistrazioni(capitolo.blocchi.map(testoBlocco));
+  }, [capitolo]);
 
   // ------------------------------------------- sistema: blocco e comandi
   const azioni = useMemo<AzioniSistema>(

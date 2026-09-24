@@ -12,6 +12,12 @@ import {
 import { GestoreVoce, MOTORI, type IdMotore } from "./gestore";
 import type { StatoModello } from "./piper";
 import {
+  haRegistrazioni,
+  lettoreRegistrazioni,
+  registrazionePer,
+} from "./registrate";
+import type { CallbackSintesi } from "./tipi";
+import {
   IMPOSTAZIONI_PREDEFINITE,
   scegliVoceMigliore,
   type ImpostazioniVoce,
@@ -107,7 +113,9 @@ export function FornitoreVoce({ children }: { children: React.ReactNode }) {
       }
 
       setMotore(gestore.id);
-      setDisponibile(gestore.corrente.disponibile());
+      // L'app sa parlare anche se il motore non è disponibile: le lezioni
+      // registrate sono file, e i file ci sono sempre.
+      setDisponibile(gestore.corrente.disponibile() || haRegistrazioni());
       setPronto(true);
 
       // 2. Voci del motore scelto.
@@ -127,7 +135,10 @@ export function FornitoreVoce({ children }: { children: React.ReactNode }) {
 
     void inizializza();
 
-    return () => gestore.chiudi();
+    return () => {
+      lettoreRegistrazioni.ferma();
+      gestore.chiudi();
+    };
   }, []);
 
   // -------------------------------------------------------- persistenza
@@ -148,6 +159,7 @@ export function FornitoreVoce({ children }: { children: React.ReactNode }) {
 
   // ------------------------------------------------------------ comandi
   const ferma = useCallback(() => {
+    lettoreRegistrazioni.ferma();
     gestoreRef.current?.ferma();
     setStato("idle");
     setTestoInLettura(null);
@@ -164,7 +176,7 @@ export function FornitoreVoce({ children }: { children: React.ReactNode }) {
       setTagInLettura(tag ?? testo);
       setPosizione(0);
 
-      void gestore.parla(testo, impostazioni, {
+      const callback: CallbackSintesi = {
         onInizio: () => setStato("speaking"),
         onFine: () => {
           setStato("idle");
@@ -176,7 +188,21 @@ export function FornitoreVoce({ children }: { children: React.ReactNode }) {
         },
         onParola: (i) => setPosizione(i),
         onErrore: () => setStato("idle"),
-      });
+      };
+
+      /*
+        Se questo testo è già registrato, si riproduce il file: parte subito e
+        non dipende dalla CPU del telefono. La scelta è per testo, non globale:
+        le lezioni registrate suonano sempre (sono audio pubblicato), tutto il
+        resto — quiz, anteprime, testi nuovi — resta alla voce dal vivo.
+      */
+      const registrazione = registrazionePer(testo);
+      if (registrazione) {
+        lettoreRegistrazioni.suona(registrazione, impostazioni.velocita, callback);
+        return;
+      }
+
+      void gestore.parla(testo, impostazioni, callback);
     },
     [impostazioni]
   );
@@ -211,11 +237,14 @@ export function FornitoreVoce({ children }: { children: React.ReactNode }) {
   const commutaPausa = useCallback(() => {
     const gestore = gestoreRef.current;
     if (!gestore) return;
+    // La pausa va data a chi sta suonando: il file registrato o la sintesi.
     if (stato === "speaking") {
-      gestore.pausa();
+      if (lettoreRegistrazioni.attivo()) lettoreRegistrazioni.pausa();
+      else gestore.pausa();
       setStato("paused");
     } else if (stato === "paused") {
-      gestore.riprendi();
+      if (lettoreRegistrazioni.attivo()) lettoreRegistrazioni.riprendi();
+      else gestore.riprendi();
       setStato("speaking");
     }
   }, [stato]);
@@ -224,9 +253,10 @@ export function FornitoreVoce({ children }: { children: React.ReactNode }) {
   const cambiaMotore = useCallback((id: IdMotore) => {
     const gestore = gestoreRef.current;
     if (!gestore) return;
+    lettoreRegistrazioni.ferma();
     gestore.seleziona(id);
     setMotore(id);
-    setDisponibile(gestore.corrente.disponibile());
+    setDisponibile(gestore.corrente.disponibile() || haRegistrazioni());
     setStato("idle");
     setTestoInLettura(null);
     setTagInLettura(null);

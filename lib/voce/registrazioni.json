@@ -1,0 +1,104 @@
+{
+  "4c4c13926a86eb6e": {
+    "file": "/voce-registrata/diritto-amministrativo/cap-1/4c4c13926a86eb6e.mp3",
+    "durataMs": 20554,
+    "frasi": [
+      {
+        "inizio": 0,
+        "fine": 24,
+        "daMs": 0,
+        "aMs": 1814
+      },
+      {
+        "inizio": 25,
+        "fine": 93,
+        "daMs": 1814,
+        "aMs": 5590
+      },
+      {
+        "inizio": 94,
+        "fine": 168,
+        "daMs": 5590,
+        "aMs": 9435
+      },
+      {
+        "inizio": 169,
+        "fine": 233,
+        "daMs": 9435,
+        "aMs": 13211
+      },
+      {
+        "inizio": 234,
+        "fine": 304,
+        "daMs": 13211,
+        "aMs": 17022
+      },
+      {
+        "inizio": 305,
+        "fine": 368,
+        "daMs": 17022,
+        "aMs": 20554
+      }
+    ]
+  },
+  "5f15a4273e1124b9": {
+    "file": "/voce-registrata/diritto-amministrativo/cap-1/5f15a4273e1124b9.mp3",
+    "durataMs": 8692,
+    "frasi": [
+      {
+        "inizio": 0,
+        "fine": 22,
+        "daMs": 0,
+        "aMs": 1442
+      },
+      {
+        "inizio": 23,
+        "fine": 94,
+        "daMs": 1442,
+        "aMs": 5114
+      },
+      {
+        "inizio": 95,
+        "fine": 163,
+        "daMs": 5114,
+        "aMs": 8692
+      }
+    ]
+  },
+  "8ad34e28ef3fdcc3": {
+    "file": "/voce-registrata/diritto-amministrativo/cap-1/8ad34e28ef3fdcc3.mp3",
+    "durataMs": 8666,
+    "frasi": [
+      {
+        "inizio": 0,
+        "fine": 112,
+        "daMs": 0,
+        "aMs": 5750
+      },
+      {
+        "inizio": 113,
+        "fine": 156,
+        "daMs": 5750,
+        "aMs": 8666
+      }
+    ]
+  },
+  "ab5ce816f20a804d": {
+    "file": "/voce-registrata/diritto-amministrativo/cap-1/ab5ce816f20a804d.mp3",
+    "durataMs": 7900,
+    "frasi": [
+      {
+        "inizio": 0,
+        "fine": 5,
+        "daMs": 0,
+        "aMs": 792
+      },
+      {
+        "inizio": 6,
+        "fine": 135,
+        "daMs": 792,
+        "aMs": 7900
+      }
+    ]
+  }
+}

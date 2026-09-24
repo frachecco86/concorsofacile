@@ -1,17 +1,18 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { componiBlocco, type ParteBlocco, type TipoBlocco } from "@/lib/dati/lezioni";
+import { fraseA, frasiConOffset, type Frase } from "@/lib/frasi";
 import { cn } from "@/lib/ui";
 
 /**
  * La scena: **un blocco alla volta**, grande, al centro.
  *
  * Il testo non si scorre: si adatta con un `font-size` fluido e, se proprio non
- * entra, scorre da solo seguendo la voce. Il karaoke evidenzia la parola in
- * corso partendo da `posizione`, la stessa unità (indice carattere) usata dalla
- * voce reale e dal timer silenzioso: la scena non sa da dove arriva.
+ * entra, scorre da solo seguendo la voce. L'evidenziazione è **per frase**,
+ * sulla stessa unità che la voce legge: dentro una frase una stima del tempo è
+ * invisibile, parola per parola no.
  */
 
 /** Etichetta breve mostrata sopra il blocco, derivata dal tipo. */
@@ -31,56 +32,70 @@ function etichetta(blocco: TipoBlocco): string {
 }
 
 /**
- * Una porzione di testo con karaoke. `inizio`/`fine` sono la posizione della
- * porzione nel testo piatto del blocco, così l'indice di `posizione` vale per
- * tutte le parti senza conversioni.
+ * Una porzione di testo con l'evidenziazione **a livello di frase**.
+ *
+ * `inizio`/`fine` sono la posizione della porzione nel testo piatto del blocco;
+ * `frase` è la frase in lettura, nelle stesse coordinate. Una frase può
+ * scavalcare più porzioni (una definizione con il suo testo, i punti di un
+ * elenco): qui si evidenzia la parte che cade dentro questa, e le altre fanno
+ * lo stesso — il risultato è una frase sola evidenziata a pezzi.
+ *
+ * Perché per frase e non per parola: la posizione nel tempo viene da una stima
+ * (o al più dai confini di parola del sistema, che su iOS non arrivano). Dentro
+ * una frase l'errore è invisibile, tra una parola e l'altra no: il riquadro
+ * saltella e a volte cade sulla parola sbagliata. La frase è l'unità che si
+ * sente leggere, ed è l'unità che si vuole seguire.
  */
 function Porzione({
   testo,
   inizio,
   fine,
-  posizione,
+  frase,
   evidenzia,
-  onParola,
+  onFrase,
   className,
 }: {
   testo: string;
   inizio: number;
   fine: number;
-  posizione: number;
+  /** Frase in lettura, in coordinate del testo piatto (o `null`). */
+  frase: Frase | null;
   evidenzia: boolean;
-  onParola?: (offset: number) => void;
+  /** Rilegge a partire da un indice nel testo piatto. */
+  onFrase?: (offset: number) => void;
   className?: string;
 }) {
-  if (!evidenzia || posizione < inizio) {
+  if (!evidenzia || !frase) {
     return <span className={className}>{testo}</span>;
   }
-  if (posizione >= fine) {
+
+  // Intersezione fra questa porzione e la frase in lettura.
+  const da = Math.max(inizio, frase.inizio);
+  const a = Math.min(fine, frase.fine);
+  if (a <= da || da >= fine || a <= inizio) {
+    // La frase è altrove: questa porzione è già stata letta, o deve ancora
+    // esserlo. In entrambi i casi resta testo normale, più tenue.
     return <span className={cn("text-ink-soft", className)}>{testo}</span>;
   }
 
-  // La posizione cade dentro questa porzione: la espandiamo ai confini di
-  // parola, così l'evidenziazione è sempre per parola intera.
-  const locale = posizione - inizio;
-  let a = locale;
-  while (a > 0 && !/\s/.test(testo[a - 1])) a--;
-  let b = locale;
-  while (b < testo.length && !/\s/.test(testo[b])) b++;
-
   return (
     <span className={className}>
-      {testo.slice(0, a) && <span className="text-ink-soft">{testo.slice(0, a)}</span>}
+      {testo.slice(0, da - inizio) && (
+        <span className="text-ink-soft">{testo.slice(0, da - inizio)}</span>
+      )}
       <span
         data-attiva=""
         className={cn(
-          "rounded-[3px] bg-brand-100 text-ink",
-          onParola && "cursor-pointer hover:bg-brand-200"
+          "rounded-[4px] bg-brand-100 text-ink",
+          onFrase && "cursor-pointer hover:bg-brand-200"
         )}
-        onClick={onParola ? () => onParola(inizio + a) : undefined}
+        onClick={onFrase ? () => onFrase(da) : undefined}
       >
-        {testo.slice(a, b)}
+        {testo.slice(da - inizio, a - inizio)}
       </span>
-      {testo.slice(b)}
+      {testo.slice(a - inizio) && (
+        <span className="text-ink-soft">{testo.slice(a - inizio)}</span>
+      )}
     </span>
   );
 }
@@ -104,17 +119,26 @@ export function ScenaBlocco({
 }) {
   const riduciMovimento = useReducedMotion();
   const contenitore = useRef<HTMLDivElement | null>(null);
-  const { parti } = componiBlocco(blocco);
+
+  /**
+   * Testo e frasi del blocco, calcolati una volta per blocco: sono gli stessi
+   * confini di frase che usano la voce dal vivo e le registrazioni.
+   */
+  const { parti, frasi } = useMemo(() => {
+    const scomposto = componiBlocco(blocco);
+    return { parti: scomposto.parti, frasi: frasiConOffset(scomposto.testo) };
+  }, [blocco]);
+  const frase = fraseA(frasi, posizione);
 
   // Auto-scroll interno: se il blocco supera la scena, l'utente non deve
-  // toccare nulla. Portiamo la parola in corso al centro, con dolcezza.
+  // toccare nulla. Portiamo la frase in corso al centro, con dolcezza.
   useEffect(() => {
     if (!evidenzia) return;
     const cont = contenitore.current;
-    const parola = cont?.querySelector<HTMLElement>("[data-attiva]");
-    if (!cont || !parola) return;
+    const attiva = cont?.querySelector<HTMLElement>("[data-attiva]");
+    if (!cont || !attiva) return;
     if (cont.scrollHeight <= cont.clientHeight + 4) return;
-    const target = parola.offsetTop - cont.clientHeight / 2 + parola.offsetHeight / 2;
+    const target = attiva.offsetTop - cont.clientHeight / 2 + attiva.offsetHeight / 2;
     cont.scrollTo({ top: Math.max(0, target), behavior: riduciMovimento ? "auto" : "smooth" });
   }, [posizione, evidenzia, riduciMovimento]);
 
@@ -124,9 +148,9 @@ export function ScenaBlocco({
         testo={p.testo}
         inizio={p.inizio}
         fine={p.fine}
-        posizione={posizione}
+        frase={frase}
         evidenzia={evidenzia}
-        onParola={onParolaRipeti}
+        onFrase={onParolaRipeti}
         className={className}
       />
     ) : null;

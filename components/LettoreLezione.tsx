@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { componiBlocco, type Capitolo, type Lezione, type TipoBlocco } from "@/lib/dati/lezioni";
+import { fraseA, frasiConOffset } from "@/lib/frasi";
 import { useStudio } from "@/lib/dati/studio";
 import { useModalitaLettore } from "@/lib/lettore/modalita";
 import { usePosizioneLettura, useSessioneAudio } from "@/lib/audio/sessione";
@@ -710,7 +711,7 @@ function Blocco({
   );
 }
 
-/** Corpo del blocco con evidenziazione a livello di porzione. */
+/** Corpo del blocco: testo con l'evidenziazione della frase in lettura. */
 function Corpo({
   blocco,
   evidenzia,
@@ -720,18 +721,32 @@ function Corpo({
   evidenzia: boolean;
   posizione: number;
 }) {
-  const { parti } = componiBlocco(blocco);
+  const { parti, testo: testoTotale } = componiBlocco(blocco);
+
+  // Solo il blocco in lettura ha bisogno delle frasi: gli altri restano testo.
+  const frase = evidenzia
+    ? fraseA(frasiConOffset(testoTotale), posizione)
+    : null;
 
   const t = (testo: string, inizio: number, fine: number) => {
-    if (!evidenzia || posizione <= inizio) return <>{testo}</>;
-    if (posizione >= fine) return <span className="text-ink">{testo}</span>;
-    const locale = posizione - inizio;
-    let a = locale;
-    while (a > 0 && !/\s/.test(testo[a - 1])) a--;
+    if (!frase) return <>{testo}</>;
+
+    const da = Math.max(inizio, frase.inizio);
+    const a = Math.min(fine, frase.fine);
+    // Frase altrove: o già letta (inchiostro pieno) o ancora da leggere.
+    if (a <= da || da >= fine || a <= inizio) {
+      return frase.fine <= inizio ? <span className="text-ink">{testo}</span> : <>{testo}</>;
+    }
+
     return (
       <>
-        <span className="text-ink">{testo.slice(0, a)}</span>
-        <span className="rounded bg-brand-100 text-ink">{testo.slice(a)}</span>
+        {testo.slice(0, da - inizio) && (
+          <span className="text-ink">{testo.slice(0, da - inizio)}</span>
+        )}
+        <span className="rounded bg-brand-100 text-ink">
+          {testo.slice(da - inizio, a - inizio)}
+        </span>
+        {testo.slice(a - inizio)}
       </>
     );
   };

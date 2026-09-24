@@ -21,17 +21,6 @@ export function durata(ms: number): string {
   return `${m}:${String(resto).padStart(2, "0")}`;
 }
 
-/**
- * Divide un testo in frasi: la voce le legge una alla volta, così la sintesi
- * parte subito e le pause sono naturali.
- */
-export function inFrasi(testo: string): string[] {
-  return testo
-    .split(/(?<=[.!?;])\s+/)
-    .map((f) => f.trim())
-    .filter(Boolean);
-}
-
 export function Card({
   children,
   className,
